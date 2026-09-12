@@ -13,9 +13,13 @@
  */
 int main(void)
 {
+
+    int x = 10.0;
+    float y = 7.25;
+
+    int v = ((float)x)*y;
     printf("Square of 5 = %d\n", SQUARE(5));
-    printf("Square of 12.31 = %.4f\n",
-           SQUARE(12.31));
+    printf("Square of 12.31 = %.4f\n", SQUARE(12.31));
 
     return 0;
 }

@@ -34,7 +34,8 @@ int max_array(const int arr[], size_t size) {
   return max_value;
 }
 
-#define Max_arr(arr, size) max_array((arr), (size))
+#define MAX_ARR(arr, size) max_array((arr), (size))
+
 
 /**
  * @brief The main entry point of the program.

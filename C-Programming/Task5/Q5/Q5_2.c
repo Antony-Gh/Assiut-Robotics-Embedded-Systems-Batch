@@ -1,5 +1,3 @@
-
-
 /*
 
 Q5.2 — Solve Q4.2 using Merge Sort

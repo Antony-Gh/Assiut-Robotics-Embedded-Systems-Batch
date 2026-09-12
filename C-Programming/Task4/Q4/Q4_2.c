@@ -25,8 +25,11 @@ int main(void)
     Student s;
 
     printf("Enter student ID: ");
-    if (scanf("%" SCNu32, &s.id) != 1)
+    if (scanf("%u", &s.id) != 1)
         return 1;
+
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
 
     printf("Enter student name: ");
     if (scanf("%49s", s.name) != 1)
@@ -37,7 +40,7 @@ int main(void)
         return 1;
 
     printf("\nStudent Information\n");
-    printf("ID: %" PRIu32 "\n", s.id);
+    printf("ID: %u\n", s.id);
     printf("Name: %s\n", s.name);
     printf("Marks: %.2f\n", s.marks);
 

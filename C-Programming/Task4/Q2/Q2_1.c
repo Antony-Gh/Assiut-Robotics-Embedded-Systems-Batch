@@ -18,7 +18,11 @@ uint32_t reverse_significant_bits(uint32_t x)
 
     while (x != 0)
     {
-        result = (result << 1) | (x & 1u);
+        0010;
+        result = (result << 1);
+        0100;
+        result = result | (x & 1u);
+        
         x >>= 1;
     }
 

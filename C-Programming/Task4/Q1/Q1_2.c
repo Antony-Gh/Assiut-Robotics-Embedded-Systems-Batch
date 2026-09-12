@@ -16,9 +16,11 @@ void swap(int *a, int *b)
     if (a == NULL || b == NULL || a == b)
         return;
 
-    *a ^= *b;
-    *b ^= *a;
-    *a ^= *b;
+    *a ^= *b; // a = (a XOR b)
+    *b ^= *a; // b = (b XOR (a XOR b)) = a
+    *a ^= *b; // a = ((a XOR b) XOR a) = b
+
+    
 }
 
 /**
