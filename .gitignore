@@ -2,4 +2,10 @@
 
 **.exe
 
-/.audit-build/
+**.o
+
+**.d
+
+**/.cbuilder/**
+
+**/.audit-build/**
