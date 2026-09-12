@@ -1,4 +1,5 @@
 
+/* Task 4 bonus: check primality and expose the result through a macro. */
 #include <stdio.h>
 
 static int is_prime(int n) {

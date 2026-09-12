@@ -1,4 +1,5 @@
 
+/* Task 4, Q5.2: copy a string into independently allocated storage. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

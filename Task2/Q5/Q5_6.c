@@ -1,3 +1,4 @@
+/* Task 2, Q5.6: replace every whitespace character with an underscore. */
 #include <ctype.h>
 
 #include <stdio.h>

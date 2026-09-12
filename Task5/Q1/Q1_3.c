@@ -1,4 +1,5 @@
 
+/* Task 5, Q1.3: sort an integer array with early-exit Bubble Sort. */
 #include <stdio.h>
 #include <stddef.h>
 

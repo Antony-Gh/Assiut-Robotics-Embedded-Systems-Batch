@@ -1,4 +1,6 @@
 
+/* Task 4, Q4.2: read a student record using shared integer typedefs. */
+#include <inttypes.h>
 #include <stdio.h>
 #include "STD_TYPES.h"
 
@@ -14,16 +16,19 @@ int main(void)
     Student s;
 
     printf("Enter student ID: ");
-    scanf("%u", &s.id);
+    if (scanf("%" SCNu32, &s.id) != 1)
+        return 1;
 
     printf("Enter student name: ");
-    scanf("%49s", s.name);
+    if (scanf("%49s", s.name) != 1)
+        return 1;
 
     printf("Enter student marks: ");
-    scanf("%f", &s.marks);
+    if (scanf("%f", &s.marks) != 1)
+        return 1;
 
     printf("\nStudent Information\n");
-    printf("ID: %u\n", s.id);
+    printf("ID: %" PRIu32 "\n", s.id);
     printf("Name: %s\n", s.name);
     printf("Marks: %.2f\n", s.marks);
 

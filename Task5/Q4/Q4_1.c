@@ -1,4 +1,5 @@
 
+/* Task 5, Q4.1: identify a number with three-way range questions. */
 #include <stdio.h>
 
 int main(void) {

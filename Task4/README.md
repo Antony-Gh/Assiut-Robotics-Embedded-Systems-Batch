@@ -2,12 +2,15 @@
 
 ## Overview
 
-Task 4 focuses on defining type aliases with `typedef`, organizing them in a header file, and using those aliases with structures.
+Task 4 covers bitwise algorithms, macros, typedef aliases, header organization, and dynamic memory management.
 
-The task contains two questions:
+The task contains five main sections and three bonus exercises:
 
-1. Create a header file containing typedefs for C’s signed and unsigned integer types.
-2. Revisit Week 3, Question 2, using structure typedefs and the types defined in the header file.
+1. Solve bitwise programming problems.
+2. Implement bit-reversal, multiplication, and XOR algorithms.
+3. Practice reusable macros.
+4. Create integer typedefs and use them in structures.
+5. Allocate, copy, resize, transpose, and free dynamic data.
 
 > **Note:** Week 3, Question 2 was not included in the provided task description. The second section below explains how to apply the required typedefs, but its exact structure and output depend on the original question.
 
@@ -69,9 +72,7 @@ Reimplement the Week 3, Question 2 task while meeting these requirements:
 
 ### What is still needed
 
-The exact implementation cannot be finalized from the Week 4 description alone because it refers to Week 3, Question 2 without repeating it.
-
-To complete this section accurately, provide the original Week 3, Question 2 statement and any required sample input/output. That will determine the structure’s fields and the program’s behavior.
+The repository includes a student structure example in `Q4/Q4_2.c`; compare its exact fields and input format with the original assignment PDF when grading.
 
 ## Key learning outcomes
 

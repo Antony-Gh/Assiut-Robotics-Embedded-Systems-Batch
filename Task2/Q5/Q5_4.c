@@ -1,4 +1,6 @@
 
+/* Copy a null-terminated string; the caller must provide enough destination space. */
+/* Copy a null-terminated string; the caller must provide enough destination space. */
 #include <stdio.h>
 
 void copyString(char dest[], const char src[]) {

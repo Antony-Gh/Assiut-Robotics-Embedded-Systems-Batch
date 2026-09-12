@@ -1,3 +1,4 @@
+/* Task 2, Q5.3: concatenate strings while respecting destination capacity. */
 #include <stdio.h>
 
 int concatenate(char dest[], size_t capacity, const char src[]) {

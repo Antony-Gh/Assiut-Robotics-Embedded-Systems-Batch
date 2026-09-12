@@ -1,4 +1,5 @@
 
+/* Task 5, Q1.2: compare nonnegative numeric strings and lexical order. */
 #include <stdio.h>
 #include <string.h>
 

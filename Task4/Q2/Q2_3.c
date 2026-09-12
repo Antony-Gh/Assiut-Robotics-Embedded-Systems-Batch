@@ -1,4 +1,5 @@
 
+/* Task 4, Q2.3: find a missing value using XOR cancellation. */
 #include <stdio.h>
 #include <stddef.h>
 

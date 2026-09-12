@@ -1,4 +1,5 @@
 
+/* Task 4, Q1.3: count set bits and test whether a value is a power of two. */
 #include <stdio.h>
 #include <stdbool.h>
 

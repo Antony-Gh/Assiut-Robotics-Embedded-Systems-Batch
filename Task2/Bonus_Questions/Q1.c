@@ -1,3 +1,4 @@
+/* Task 2 bonus: split a mutable string into delimiter-separated tokens. */
 #include <stdio.h>
 #include <string.h>
 

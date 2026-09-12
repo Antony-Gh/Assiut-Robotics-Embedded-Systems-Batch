@@ -27,6 +27,18 @@ Each week introduces new concepts and builds upon the previous weeks. The exerci
 
 Each task contains its own `README.md` with explanations of the exercises, concepts, approaches, and important notes.
 
+## Build and Run
+
+Each executable C file is an independent exercise. From the repository root, compile a selected program with GCC or Clang using C17:
+
+```text
+gcc -std=c17 -Wall -Wextra -Wpedantic path/to/program.c -o program
+```
+
+Run the resulting executable and provide the input described in its task README. Some Task 2 exercises use C variable-length arrays, which require a compiler that supports optional C17 VLA features; MSVC does not support them. The comment-only explanation files intentionally contain no executable program.
+
+The repository does not currently provide a shared build system or automated test suite, so programs must be compiled and tested independently.
+
 ---
 
 # Weekly Tasks
@@ -478,7 +490,7 @@ Throughout the five weeks, the exercises progressively develop the following ski
 # Repository Structure
 
 ```text
-C-Programming/
+Assiut-Robotics-Embedded-Systems-Batch/
 │
 ├── Task1/
 │   └── README.md

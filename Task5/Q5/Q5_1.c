@@ -1,4 +1,5 @@
 
+/* Task 5, Q5.1: sort an integer array with divide-and-conquer Merge Sort. */
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

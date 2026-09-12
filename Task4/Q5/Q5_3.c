@@ -1,5 +1,7 @@
 
+/* Task 4, Q5.3: allocate, populate, and release a jagged integer matrix. */
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10,6 +12,9 @@ int main(void) {
   printf("Enter number of rows: ");
 
   if (scanf("%zu", &rows) != 1 || rows == 0)
+    return 1;
+
+  if (rows > SIZE_MAX / sizeof(int *))
     return 1;
 
   int **matrix = calloc(rows, sizeof *matrix);
@@ -25,6 +30,9 @@ int main(void) {
     printf("Columns in row %zu: ", i + 1);
 
     if (scanf("%zu", &cols[i]) != 1 || cols[i] == 0)
+      goto cleanup;
+
+    if (cols[i] > SIZE_MAX / sizeof *matrix[i])
       goto cleanup;
 
     matrix[i] = malloc(cols[i] * sizeof *matrix[i]);

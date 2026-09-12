@@ -1,3 +1,4 @@
+/* Shared aliases for standard and fixed-width integer types used by Task 4. */
 #ifndef STD_TYPES_H
 #define STD_TYPES_H
 

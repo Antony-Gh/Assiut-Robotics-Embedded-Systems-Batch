@@ -1,4 +1,5 @@
 
+/* Task 4, Q1.1: determine parity with the least-significant bit. */
 #include <stdio.h>
 
 void check_even_odd(int n)

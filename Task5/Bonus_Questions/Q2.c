@@ -1,4 +1,5 @@
 
+/* Task 5 bonus: find a missing value with XOR in linear time. */
 #include <stddef.h>
 #include <stdio.h>
 

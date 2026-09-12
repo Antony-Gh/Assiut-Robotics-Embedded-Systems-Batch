@@ -1,5 +1,4 @@
-
-
+/* Task 2 bonus: multiply compatible matrices using row-column products. */
 #include <stdio.h>
 
 int multiplyMatrices(int m, int n, int p,

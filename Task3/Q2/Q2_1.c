@@ -1,3 +1,4 @@
+/* Task 3, Q2: allocate student records and sort by total marks then name. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

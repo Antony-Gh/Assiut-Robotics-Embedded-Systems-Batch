@@ -1,3 +1,4 @@
+/* Task 1, Q5.2: perform basic arithmetic selected by an operator. */
 #include <stdio.h>
 
 int main(void) {

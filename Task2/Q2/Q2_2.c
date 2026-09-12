@@ -1,3 +1,4 @@
+/* Reverse a user-provided integer array in place using two moving indices. */
 #include <stdio.h>
 
 void swap(int *a, int *b) {
@@ -28,7 +29,8 @@ int main(void) {
 
   for (int i = 0; i < size; i++) {
     printf("Enter element %d: ", i + 1);
-    scanf("%d", &arr[i]);
+    if (scanf("%d", &arr[i]) != 1)
+      return 1;
   }
 
   reverseArray(arr, size);

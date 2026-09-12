@@ -1,4 +1,5 @@
 
+/* Task 4, Q2.2: multiply unsigned values using shifts and additions. */
 #include <stdio.h>
 #include <stdint.h>
 

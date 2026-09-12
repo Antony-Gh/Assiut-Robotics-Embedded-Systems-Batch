@@ -1,3 +1,4 @@
+/* Task 1, Q4: read integers until stopped and report min, max, and average. */
 #include <stdio.h>
 
 int main(void) {

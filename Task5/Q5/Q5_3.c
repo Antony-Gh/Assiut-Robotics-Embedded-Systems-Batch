@@ -1,4 +1,5 @@
 
+/* Task 5, Q5.3: count sorted-array occurrences from binary-search bounds. */
 #include <stddef.h>
 #include <stdio.h>
 

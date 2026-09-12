@@ -1,3 +1,4 @@
+/* Task 1, Q5.1: map a numeric day selection to a weekday with switch. */
 #include <stdio.h>
 
 int main(void)

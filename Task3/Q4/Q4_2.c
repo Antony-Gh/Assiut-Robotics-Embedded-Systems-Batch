@@ -1,3 +1,4 @@
+/* Task 3, Q4.2: read employee records and validate role enum values. */
 #include <stdio.h>
 #include <stdlib.h>
 

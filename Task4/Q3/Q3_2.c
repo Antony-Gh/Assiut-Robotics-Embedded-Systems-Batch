@@ -1,4 +1,5 @@
 
+/* Task 4, Q3.2: swap values of a caller-selected type through a macro. */
 #include <stdio.h>
 
 #define SWAP(a, b, type)       \

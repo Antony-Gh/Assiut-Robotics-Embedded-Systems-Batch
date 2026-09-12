@@ -1,4 +1,4 @@
-
+/* Task 2, Q1.2: reverse a null-terminated string in place with pointers. */
 #include <stdio.h>
 
 void reverseString(char *str)

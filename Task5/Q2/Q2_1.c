@@ -1,4 +1,5 @@
 
+/* Task 5, Q2.1: locate the first target occurrence with Linear Search. */
 #include <stdio.h>
 #include <stddef.h>
 

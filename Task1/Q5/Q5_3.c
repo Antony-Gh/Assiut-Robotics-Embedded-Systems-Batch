@@ -1,3 +1,4 @@
+/* Task 1, Q5.3: classify a positive year using the Gregorian leap-year rule. */
 #include <stdio.h>
 
 int main(void) {

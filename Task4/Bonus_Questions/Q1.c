@@ -1,4 +1,5 @@
 
+/* Task 4 bonus: find two values that occur once using XOR partitioning. */
 #include <stddef.h>
 #include <stdio.h>
 

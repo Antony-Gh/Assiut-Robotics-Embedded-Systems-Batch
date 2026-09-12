@@ -1,4 +1,5 @@
 
+/* Task 5, Q3.1: use binary-search bounds to count values around a target. */
 #include <stddef.h>
 #include <stdio.h>
 

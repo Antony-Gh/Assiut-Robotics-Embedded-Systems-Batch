@@ -1,4 +1,4 @@
-
+/* Task 1, Q3: clear, set, and toggle a selected bit using masks. */
 #include <stdio.h>
 
 #include <limits.h>

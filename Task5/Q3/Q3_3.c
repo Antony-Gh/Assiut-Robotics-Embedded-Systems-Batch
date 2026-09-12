@@ -1,4 +1,5 @@
 
+/* Task 5, Q3.3: identify a number from 1 through 1000 with binary questions. */
 #include <stdio.h>
 
 int main(void)

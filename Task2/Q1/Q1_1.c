@@ -1,3 +1,4 @@
+/* Task 2, Q1.1: exchange two integers through pointer parameters. */
 #include <stdio.h>
 
 void swap(int *a, int *b) {

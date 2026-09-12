@@ -1,3 +1,4 @@
+/* Task 2, Q2.1: calculate array minimum, maximum, and average in one pass. */
 #include <stdio.h>
 
 int arrayStats(const int arr[], int size, int *min, int *max, double *average) {

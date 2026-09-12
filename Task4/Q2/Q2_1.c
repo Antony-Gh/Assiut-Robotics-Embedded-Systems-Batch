@@ -1,4 +1,5 @@
 
+/* Task 4, Q2.1: reverse the significant bits of an unsigned integer. */
 #include <stdio.h>
 #include <stdint.h>
 

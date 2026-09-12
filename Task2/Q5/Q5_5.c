@@ -1,3 +1,4 @@
+/* Task 2, Q5.5: test palindromes while ignoring case and punctuation. */
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>

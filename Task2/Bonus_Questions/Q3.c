@@ -1,4 +1,5 @@
 
+/* Task 2 bonus: determine whether a square matrix equals its transpose. */
 #include <stdio.h>
 
 int isSymmetric(int rows, int cols, const int matrix[rows][cols]) {

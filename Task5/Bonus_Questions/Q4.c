@@ -1,4 +1,5 @@
 
+/* Task 5 bonus: combine merge sort with a two-pointer target-sum search. */
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

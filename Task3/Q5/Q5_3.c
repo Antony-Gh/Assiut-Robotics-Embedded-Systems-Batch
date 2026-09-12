@@ -1,3 +1,4 @@
+/* Task 3, Q5.3: print a tagged union through the active member type. */
 #include <stdio.h>
 
 typedef enum { VALUE_INT, VALUE_FLOAT, VALUE_STRING } ValueType;

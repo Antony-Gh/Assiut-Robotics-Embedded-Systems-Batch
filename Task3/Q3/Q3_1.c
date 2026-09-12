@@ -1,3 +1,4 @@
+/* Task 3, Q3: perform integer complex arithmetic and exponentiation. */
 #include <stdio.h>
 
 typedef struct {

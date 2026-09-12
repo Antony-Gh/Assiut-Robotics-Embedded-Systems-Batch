@@ -1,3 +1,4 @@
+/* Task 3, Q4.1: map traffic-light enum values to their actions. */
 #include <stdio.h>
 
 typedef enum { RED, YELLOW, GREEN } TrafficLight;

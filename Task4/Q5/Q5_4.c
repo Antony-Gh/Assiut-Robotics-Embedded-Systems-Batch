@@ -1,5 +1,7 @@
 
+/* Task 4, Q5.4: manage a matrix abstraction and create its transpose. */
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -25,6 +27,11 @@ void free_matrix(Matrix *m) {
 }
 
 int allocate_matrix(Matrix *m, size_t rows, size_t cols) {
+  if (m == NULL || rows == 0 || cols == 0 ||
+      rows > SIZE_MAX / sizeof *m->data ||
+      cols > SIZE_MAX / sizeof *m->data[0])
+    return 0;
+
   m->rows = rows;
   m->cols = cols;
   m->data = calloc(rows, sizeof *m->data);

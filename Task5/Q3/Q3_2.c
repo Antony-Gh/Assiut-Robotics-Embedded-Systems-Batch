@@ -1,4 +1,5 @@
 
+/* Task 5, Q3.2: search sorted data by blocks followed by a linear scan. */
 #include <stdio.h>
 #include <stddef.h>
 

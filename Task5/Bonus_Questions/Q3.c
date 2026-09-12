@@ -1,4 +1,5 @@
 
+/* Task 5 bonus: sort a copy and scan for the minimum excluded value. */
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,4 +1,5 @@
 
+/* Task 5, Q2.2: compare in-place Insertion Sort and Selection Sort. */
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>

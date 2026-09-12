@@ -1,3 +1,4 @@
+/* Read a VLA matrix, report its statistics, and calculate each row sum. */
 #include <stdio.h>
 
 void printMatrix(int rows, int cols, const int matrix[rows][cols]) {
@@ -69,7 +70,8 @@ int main(void) {
   for (int i = 0; i < rows; i++)
     for (int j = 0; j < cols; j++) {
       printf("matrix[%d][%d] = ", i, j);
-      scanf("%d", &matrix[i][j]);
+      if (scanf("%d", &matrix[i][j]) != 1)
+        return 1;
     }
 
   printf("Matrix:\n");

@@ -1,4 +1,5 @@
 
+/* Task 5 bonus: stable-merge-sort students by name and then score. */
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

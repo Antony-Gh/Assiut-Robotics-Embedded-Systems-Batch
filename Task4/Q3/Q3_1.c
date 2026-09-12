@@ -1,4 +1,5 @@
 
+/* Task 4, Q3.1: define and use a parenthesized square macro. */
 #include <stdio.h>
 
 #define SQUARE(x) ((x) * (x))

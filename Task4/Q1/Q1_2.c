@@ -1,8 +1,12 @@
 
+/* Swap two integers with XOR; identical pointers are already in the desired state. */
 #include <stdio.h>
 
 void swap(int *a, int *b)
 {
+    if (a == NULL || b == NULL || a == b)
+        return;
+
     *a ^= *b;
     *b ^= *a;
     *a ^= *b;

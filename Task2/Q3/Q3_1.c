@@ -1,4 +1,4 @@
-
+/* Task 2, Q3: sort an integer array with early-exit Bubble Sort. */
 #include <stdio.h>
 
 void swap(int *a, int *b) {

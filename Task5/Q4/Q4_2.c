@@ -1,4 +1,5 @@
 
+/* Task 5, Q4.2: stable-merge-sort points by squared reference distance. */
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

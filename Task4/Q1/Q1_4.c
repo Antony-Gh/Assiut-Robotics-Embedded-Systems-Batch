@@ -1,4 +1,5 @@
 
+/* Task 4, Q1.4: find the sole non-repeating array value with XOR. */
 #include <stdio.h>
 #include <stddef.h>
 

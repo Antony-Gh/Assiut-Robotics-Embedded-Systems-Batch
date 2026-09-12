@@ -1,4 +1,5 @@
 
+/* Task 4 bonus: allocate and populate a variable-sized student collection. */
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

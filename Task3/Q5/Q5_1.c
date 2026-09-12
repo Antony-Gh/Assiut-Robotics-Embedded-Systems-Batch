@@ -1,3 +1,4 @@
+/* Task 3, Q5.1: demonstrate separate assignments to members of a union. */
 #include <stdio.h>
 
 typedef union {
