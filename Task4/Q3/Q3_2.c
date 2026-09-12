@@ -10,6 +10,13 @@
         (b) = temp;            \
     } while (0)
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Tests the SWAP macro on different data types (int and double).
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void)
 {
     int x = 10, y = 20;

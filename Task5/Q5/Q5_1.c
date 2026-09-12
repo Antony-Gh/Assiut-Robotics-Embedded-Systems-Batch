@@ -5,6 +5,15 @@
 #include <stdlib.h>
 
 
+/**
+ * @brief Merges two sorted sub-arrays into a single sorted array.
+ * 
+ * @param arr The original array containing the two sub-arrays.
+ * @param temp A temporary buffer array used for merging.
+ * @param left The starting index of the left sub-array.
+ * @param mid The ending index of the left sub-array (and start of the right).
+ * @param right The ending index of the right sub-array.
+ */
 void merge(int arr[], int temp[], size_t left, size_t mid, size_t right) {
   size_t i = left;
   size_t j = mid;
@@ -27,6 +36,14 @@ void merge(int arr[], int temp[], size_t left, size_t mid, size_t right) {
     arr[p] = temp[p];
 }
 
+/**
+ * @brief Recursively divides the array and sorts it using merge sort.
+ * 
+ * @param arr The array to sort.
+ * @param temp A temporary array used for merging.
+ * @param left The starting index of the sub-array.
+ * @param right The ending index of the sub-array.
+ */
 void merge_sort_recursive(int arr[], int temp[], size_t left, size_t right) {
   if (right - left <= 1)
     return;
@@ -39,6 +56,16 @@ void merge_sort_recursive(int arr[], int temp[], size_t left, size_t right) {
   merge(arr, temp, left, mid, right);
 }
 
+/**
+ * @brief Sorts an integer array using the Merge Sort algorithm.
+ * 
+ * This is the public wrapper function that allocates the required temporary 
+ * memory buffer before kicking off the recursive sort.
+ * 
+ * @param arr The array of integers to sort.
+ * @param n The number of elements in the array.
+ * @return 1 on success, 0 on memory allocation failure or invalid size.
+ */
 int merge_sort(int arr[], size_t n) {
   if (n < 2)
     return 1;
@@ -57,6 +84,14 @@ int merge_sort(int arr[], size_t n) {
   return 1;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Initializes an array of integers, sorts them using merge_sort, 
+ * and prints the sorted output.
+ * 
+ * @return 0 upon successful execution, 1 on error.
+ */
 int main(void) {
   int arr[] = {38, 27, 43, 3, 9, 82, 10};
   size_t n = sizeof(arr) / sizeof(arr[0]);

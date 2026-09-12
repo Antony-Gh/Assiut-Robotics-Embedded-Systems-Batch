@@ -1,6 +1,15 @@
 /* Task 1, Q4: read integers until stopped and report min, max, and average. */
 #include <stdio.h>
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * This program continuously prompts the user to enter integers until they decide to stop.
+ * It keeps track of the minimum value, maximum value, and the sum of all entered numbers.
+ * Finally, it calculates and prints the average along with the min and max values.
+ * 
+ * @return 0 upon successful execution, 1 if input parsing fails.
+ */
 int main(void) {
   int number;
   int min, max;

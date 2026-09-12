@@ -5,6 +5,15 @@
 #include <stdlib.h>
 
 
+/**
+ * @brief Merges two sorted halves of an array into a temporary array.
+ * 
+ * @param arr The original array containing the halves.
+ * @param temp The temporary array used for merging.
+ * @param left The starting index of the left half.
+ * @param mid The starting index of the right half.
+ * @param right The ending index (exclusive) of the right half.
+ */
 void merge(int arr[], int temp[], size_t left, size_t mid, size_t right) {
   size_t i = left;
   size_t j = mid;
@@ -27,6 +36,14 @@ void merge(int arr[], int temp[], size_t left, size_t mid, size_t right) {
     arr[p] = temp[p];
 }
 
+/**
+ * @brief Recursively splits the array for Merge Sort.
+ * 
+ * @param arr The array to sort.
+ * @param temp A temporary array used for merging.
+ * @param left The starting index of the range to sort.
+ * @param right The ending index (exclusive) of the range.
+ */
 void merge_sort_recursive(int arr[], int temp[], size_t left, size_t right) {
   if (right - left <= 1)
     return;
@@ -39,6 +56,13 @@ void merge_sort_recursive(int arr[], int temp[], size_t left, size_t right) {
   merge(arr, temp, left, mid, right);
 }
 
+/**
+ * @brief Sorts an array using the Merge Sort algorithm.
+ * 
+ * @param arr The array to sort.
+ * @param n The total number of elements.
+ * @return 1 on success, 0 on failure.
+ */
 int merge_sort(int arr[], size_t n) {
   if (n < 2)
     return 1;
@@ -57,6 +81,16 @@ int merge_sort(int arr[], size_t n) {
   return 1;
 }
 
+/**
+ * @brief Finds the Minimum Excluded (MEX) value in an array.
+ * 
+ * It makes a copy of the array, sorts the copy, and then iterates through 
+ * to find the smallest non-negative integer that is missing.
+ * 
+ * @param arr The array of integers.
+ * @param n The total number of elements.
+ * @return The MEX value, or -1 on memory allocation error.
+ */
 int mex(int arr[], size_t n) {
   if (n > (size_t)-1 / sizeof(int))
     return -1;
@@ -90,6 +124,13 @@ int mex(int arr[], size_t n) {
   return expected;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates finding the MEX value for an array.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   int arr[] = {0, 1, 3, 5};
   size_t n = sizeof(arr) / sizeof(arr[0]);

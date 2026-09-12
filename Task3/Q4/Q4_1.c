@@ -3,6 +3,11 @@
 
 typedef enum { RED, YELLOW, GREEN } TrafficLight;
 
+/**
+ * @brief Prints the action to take for a given traffic light color.
+ * 
+ * @param light The current state of the traffic light (RED, YELLOW, or GREEN).
+ */
 void print_action(TrafficLight light) {
   switch (light) {
   case RED:
@@ -20,6 +25,13 @@ void print_action(TrafficLight light) {
   }
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Tests the print_action function by passing all possible traffic light states.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   print_action(RED);
   print_action(YELLOW);

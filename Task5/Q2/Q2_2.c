@@ -13,6 +13,16 @@ Selection Sort | O(n²) | O(n²) | O(1)
 
 Insertion Sort is efficient for small or nearly sorted arrays. Selection Sort performs fewer swaps, but still performs O(n²) comparisons.
 */
+/**
+ * @brief Sorts an array using the Insertion Sort algorithm.
+ * 
+ * Builds the final sorted array one item at a time. It is much less efficient 
+ * on large lists than more advanced algorithms such as quicksort, heapsort, 
+ * or merge sort, but is very efficient for small data sets.
+ * 
+ * @param arr The array to sort.
+ * @param n The number of elements.
+ */
 void insertion_sort(int arr[], size_t n)
 {
     for (size_t i = 1; i < n; i++)
@@ -30,6 +40,15 @@ void insertion_sort(int arr[], size_t n)
     }
 }
 
+/**
+ * @brief Sorts an array using the Selection Sort algorithm.
+ * 
+ * Sorts an array by repeatedly finding the minimum element from the unsorted 
+ * part and putting it at the beginning.
+ * 
+ * @param arr The array to sort.
+ * @param n The number of elements.
+ */
 void selection_sort(int arr[], size_t n)
 {
     for (size_t i = 0; i + 1 < n; i++)
@@ -51,6 +70,13 @@ void selection_sort(int arr[], size_t n)
     }
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Tests and compares both insertion_sort and selection_sort on an array.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void)
 {
     int arr[] = {5, 2, 4, 6, 1, 3};

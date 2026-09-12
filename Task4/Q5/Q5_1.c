@@ -42,6 +42,15 @@ elements are zero.
 
 #include <stdlib.h>
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Provides an example of dynamically allocating memory using malloc and calloc,
+ * resizing an allocation using realloc, and properly releasing the memory 
+ * back to the system using free to prevent memory leaks.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
 
   /* Allocate memory for 5 integers */

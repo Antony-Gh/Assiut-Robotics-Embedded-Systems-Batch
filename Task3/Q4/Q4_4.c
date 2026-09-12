@@ -3,6 +3,14 @@
 
 #define PI 3.14159265358979323846
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Reads the radius of a sphere from the user and calculates its 
+ * great-circle circumference, surface area, and volume, then prints them.
+ * 
+ * @return 0 upon successful execution, 1 on invalid input.
+ */
 int main(void) {
   double radius;
 

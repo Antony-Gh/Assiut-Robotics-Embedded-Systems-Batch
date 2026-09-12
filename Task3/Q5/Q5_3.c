@@ -9,6 +9,15 @@ typedef union {
   const char *string;
 } Value;
 
+/**
+ * @brief Prints the value held within a tagged union based on its type.
+ * 
+ * A tagged union uses an enum (tag) to keep track of which member is currently
+ * active, ensuring the union is accessed safely.
+ * 
+ * @param value The union containing the data.
+ * @param type The tag specifying which type the union is currently holding.
+ */
 void print_value(Value value, ValueType type) {
   switch (type) {
   case VALUE_INT:
@@ -32,6 +41,14 @@ void print_value(Value value, ValueType type) {
   }
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates using a tagged union by assigning different types of data to it
+ * and passing the corresponding tag to the print_value function.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   Value value;
 

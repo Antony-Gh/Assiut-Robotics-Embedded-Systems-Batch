@@ -3,6 +3,17 @@
 #include <stdio.h>
 
 /* Allocate and return the transpose; the caller owns the returned rows. */
+/**
+ * @brief Creates a dynamically allocated transpose of a given 2D matrix.
+ * 
+ * The transpose of a matrix swaps its rows and columns. This function allocates
+ * memory for the new matrix. The caller is responsible for freeing this memory.
+ * 
+ * @param rows The number of rows in the original matrix.
+ * @param cols The number of columns in the original matrix.
+ * @param matrix The original 2D array.
+ * @return A pointer to the newly allocated transposed matrix, or NULL on failure.
+ */
 int **transposeMatrix(int rows, int cols, const int matrix[rows][cols]) {
   if (rows <= 0 || cols <= 0 || (size_t)cols > SIZE_MAX / sizeof(int *))
     return NULL;
@@ -39,6 +50,14 @@ allocation_failure:
   return NULL;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates transposing a 3x3 matrix, prints the result, and correctly
+ * frees the dynamically allocated memory.
+ * 
+ * @return 0 upon successful execution, 1 on allocation failure.
+ */
 int main(void) {
   int matrix[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
   int **transpose = transposeMatrix(3, 3, matrix);

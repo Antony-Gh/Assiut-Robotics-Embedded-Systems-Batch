@@ -9,6 +9,12 @@ typedef struct {
   Role role;
 } Employee;
 
+/**
+ * @brief Converts a Role enum value to its corresponding string representation.
+ * 
+ * @param role The role enum value (ENGINEER, MANAGER, or HR).
+ * @return A string literal representing the role's name.
+ */
 static const char *role_name(Role role) {
   switch (role) {
   case ENGINEER:
@@ -22,6 +28,14 @@ static const char *role_name(Role role) {
   }
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Asks for the number of employees, allocates memory, reads their names and roles,
+ * and prints their details using the role_name helper function.
+ * 
+ * @return 0 upon successful execution, 1 on error.
+ */
 int main(void) {
   size_t count;
 

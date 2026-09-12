@@ -1,6 +1,15 @@
 /* Task 1, Q5.3: classify a positive year using the Gregorian leap-year rule. */
 #include <stdio.h>
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * This program determines if a given positive year is a leap year according to 
+ * the Gregorian calendar rules. A year is a leap year if it is divisible by 400, 
+ * or if it is divisible by 4 but NOT by 100.
+ * 
+ * @return 0 upon successful execution, 1 if the input is invalid or less than or equal to 0.
+ */
 int main(void) {
   int year;
 

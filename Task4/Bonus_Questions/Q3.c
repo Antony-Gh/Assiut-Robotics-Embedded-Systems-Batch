@@ -11,6 +11,15 @@ typedef struct {
   float marks;
 } Student;
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Prompts the user for a number of students, dynamically allocates an array 
+ * of Student structs, accepts their details via user input, and then prints 
+ * the populated list. Finally, it frees the allocated memory.
+ * 
+ * @return 0 upon successful execution, 1 on error.
+ */
 int main(void) {
   size_t n;
 

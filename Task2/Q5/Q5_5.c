@@ -4,6 +4,15 @@
 #include <string.h>
 
 
+/**
+ * @brief Checks if a string is a palindrome.
+ * 
+ * A palindrome reads the same forwards and backwards. This function ignores
+ * case differences and non-alphanumeric characters (like punctuation and spaces).
+ * 
+ * @param str The string to check.
+ * @return 1 if the string is a palindrome, 0 otherwise.
+ */
 int isPalindrome(const char str[]) {
   size_t left = 0;
   size_t right = strlen(str);
@@ -30,6 +39,14 @@ int isPalindrome(const char str[]) {
   return 1;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Tests various strings to see if they are palindromes and prints the result
+ * (1 for true, 0 for false).
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
 
   printf("%d\n", isPalindrome("anthony"));

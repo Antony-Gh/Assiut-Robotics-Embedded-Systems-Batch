@@ -11,6 +11,15 @@ typedef struct
     float marks;
 } Student;
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates reading and storing data into a structure using shared 
+ * standard integer types (like u32) and formats macros (like SCNu32, PRIu32) 
+ * for safe input and output.
+ * 
+ * @return 0 upon successful execution, 1 on invalid input.
+ */
 int main(void)
 {
     Student s;

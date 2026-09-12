@@ -6,6 +6,15 @@
 #include <stdlib.h>
 
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates allocating a "jagged" 2D array, where each row can have a 
+ * different number of columns. Prompts the user for dimensions and data, 
+ * prints the matrix, and properly frees the dynamically allocated memory.
+ * 
+ * @return 0 upon successful execution, 1 on error.
+ */
 int main(void) {
   size_t rows;
 

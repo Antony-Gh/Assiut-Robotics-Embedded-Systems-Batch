@@ -13,6 +13,13 @@
     max_value;                                                                 \
   })
 
+/**
+ * @brief Finds the maximum value in an integer array.
+ * 
+ * @param arr The array of integers.
+ * @param size The number of elements in the array.
+ * @return The maximum integer found.
+ */
 int max_array(const int arr[], size_t size) {
   if (size == 0)
     return 0;
@@ -29,6 +36,13 @@ int max_array(const int arr[], size_t size) {
 
 #define Max_arr(arr, size) max_array((arr), (size))
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates finding the maximum value in an array using the Max_arr macro.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   int arr[] = {10, 5, 25, 3, 18};
   size_t size = sizeof(arr) / sizeof(arr[0]);

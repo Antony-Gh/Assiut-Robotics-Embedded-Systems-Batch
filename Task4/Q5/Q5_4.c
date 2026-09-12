@@ -12,6 +12,14 @@ typedef struct {
   int **data;
 } Matrix;
 
+/**
+ * @brief Frees all dynamically allocated memory within a Matrix.
+ * 
+ * Iterates through each row pointer and frees it, then frees the array of 
+ * row pointers. Sets the matrix dimensions to 0 to indicate it's empty.
+ * 
+ * @param m Pointer to the Matrix structure to free.
+ */
 void free_matrix(Matrix *m) {
   if (m == NULL)
     return;
@@ -26,6 +34,17 @@ void free_matrix(Matrix *m) {
   m->cols = 0;
 }
 
+/**
+ * @brief Allocates memory for a 2D matrix structure.
+ * 
+ * First allocates an array of pointers (for the rows), then for each row, 
+ * it allocates an array of integers (for the columns).
+ * 
+ * @param m Pointer to an existing Matrix structure to populate.
+ * @param rows The desired number of rows.
+ * @param cols The desired number of columns.
+ * @return 1 on successful allocation, 0 on failure.
+ */
 int allocate_matrix(Matrix *m, size_t rows, size_t cols) {
   if (m == NULL || rows == 0 || cols == 0 ||
       rows > SIZE_MAX / sizeof *m->data ||
@@ -51,6 +70,15 @@ int allocate_matrix(Matrix *m, size_t rows, size_t cols) {
   return 1;
 }
 
+/**
+ * @brief Computes and returns the transpose of a given matrix.
+ * 
+ * The transpose is created by swapping rows and columns. It allocates a new 
+ * Matrix internally, which the caller will be responsible for freeing.
+ * 
+ * @param m Pointer to the original Matrix.
+ * @return A new Matrix structure containing the transposed data.
+ */
 Matrix transpose(const Matrix *m) {
   Matrix t = {0, 0, NULL};
 
@@ -69,6 +97,11 @@ Matrix transpose(const Matrix *m) {
   return t;
 }
 
+/**
+ * @brief Prints the elements of a matrix in a grid format.
+ * 
+ * @param m Pointer to the Matrix structure to print.
+ */
 void print_matrix(const Matrix *m) {
   for (size_t i = 0; i < m->rows; i++) {
     for (size_t j = 0; j < m->cols; j++)
@@ -78,6 +111,14 @@ void print_matrix(const Matrix *m) {
   }
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Prompts the user to enter matrix dimensions and elements, allocates memory,
+ * computes its transpose, prints both matrices, and frees the allocated memory.
+ * 
+ * @return 0 upon successful execution, 1 on error.
+ */
 int main(void) {
   Matrix m = {0, 0, NULL};
 

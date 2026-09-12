@@ -6,6 +6,15 @@ typedef union {
   char character;
 } Value;
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates how a union works. Since all members in a union share the same 
+ * memory space, assigning a value to one member might overwrite the value of 
+ * another member. This code assigns and prints them separately.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   Value value;
 

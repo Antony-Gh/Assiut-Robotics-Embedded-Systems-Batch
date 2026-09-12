@@ -4,6 +4,13 @@
 
 #define SQUARE(x) ((x) * (x))
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates the use of the SQUARE macro to calculate the square of a number.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void)
 {
     printf("Square of 5 = %d\n", SQUARE(5));

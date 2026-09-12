@@ -3,6 +3,15 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/**
+ * @brief Reverses the bits of an unsigned integer up to its most significant set bit.
+ * 
+ * Shifts bits out of the input number and into the result variable, 
+ * effectively reversing their order.
+ * 
+ * @param x The unsigned integer to reverse.
+ * @return The reversed integer.
+ */
 uint32_t reverse_significant_bits(uint32_t x)
 {
     uint32_t result = 0;
@@ -16,6 +25,13 @@ uint32_t reverse_significant_bits(uint32_t x)
     return result;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates reversing the significant bits of an unsigned integer.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void)
 {
     uint32_t x = 11;

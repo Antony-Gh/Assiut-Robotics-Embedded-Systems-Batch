@@ -2,6 +2,15 @@
 /* Task 5, Q3.3: identify a number from 1 through 1000 with binary questions. */
 #include <stdio.h>
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Plays a number guessing game. It asks the user to think of a number between 
+ * 1 and 1000, and uses binary search to guess it by repeatedly asking if the 
+ * number is greater than the current midpoint.
+ * 
+ * @return 0 upon successful execution, 1 on invalid input.
+ */
 int main(void)
 {
     int low = 1;

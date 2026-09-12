@@ -14,6 +14,15 @@ Worst| O(n²)
 
 Space complexity: O(1), because sorting is performed in place. */
 
+/**
+ * @brief Sorts an integer array using the Bubble Sort algorithm.
+ * 
+ * Repeatedly swaps adjacent elements that are in the wrong order. 
+ * Includes an early exit if the array is already sorted during a pass.
+ * 
+ * @param arr The array of integers to sort.
+ * @param n The total number of elements.
+ */
 void bubble_sort(int arr[], size_t n)
 {
     for (size_t i = 0; i + 1 < n; i++)
@@ -38,6 +47,13 @@ void bubble_sort(int arr[], size_t n)
     }
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Tests the bubble_sort function on an unsorted array and prints the result.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void)
 {
     int arr[] = {5, 1, 4, 2, 8};

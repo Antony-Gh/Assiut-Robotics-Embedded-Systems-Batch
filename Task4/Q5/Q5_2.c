@@ -4,6 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Creates a dynamically allocated copy of a string.
+ * 
+ * Calculates the length of the source string, allocates enough memory to hold 
+ * the characters plus the null terminator, and copies the contents over.
+ * 
+ * @param source The null-terminated source string to copy.
+ * @return A pointer to the newly allocated string copy, or NULL on failure.
+ */
 char *copy_string(const char *source) {
   if (source == NULL)
     return NULL;
@@ -20,6 +29,14 @@ char *copy_string(const char *source) {
   return copy;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates copying a string into an independent memory location using 
+ * the copy_string function, prints both strings, and then frees the copy.
+ * 
+ * @return 0 upon successful execution, 1 on allocation failure.
+ */
 int main(void) {
   const char *original = "Hello C17";
 

@@ -4,6 +4,18 @@
 #include <stdio.h>
 
 
+/**
+ * @brief Finds two non-repeating elements in an array using XOR partitioning.
+ * 
+ * First, it XORs all elements to find the XOR sum of the two unique elements.
+ * Then, it isolates the rightmost set bit in this sum to divide the elements 
+ * into two groups, each containing one of the unique elements.
+ * 
+ * @param arr The array of integers.
+ * @param size The number of elements in the array.
+ * @param first Pointer to store the first unique element.
+ * @param second Pointer to store the second unique element.
+ */
 void find_two_unique(const int arr[], size_t size, int *first, int *second) {
   int xor_result = 0;
 
@@ -28,6 +40,14 @@ void find_two_unique(const int arr[], size_t size, int *first, int *second) {
   *second = b;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates finding two unique elements in an array where all other 
+ * elements appear exactly twice.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   int arr[] = {2, 4, 7, 9, 2, 4};
   size_t size = sizeof(arr) / sizeof(arr[0]);

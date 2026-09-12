@@ -2,6 +2,15 @@
 /* Task 5, Q4.1: identify a number with three-way range questions. */
 #include <stdio.h>
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Plays a more advanced number guessing game using ternary-like search intervals.
+ * It divides the search space into three parts and asks the user which part 
+ * contains their number (below, inside, or above the middle range).
+ * 
+ * @return 0 upon successful execution, 1 on invalid input.
+ */
 int main(void) {
   int low = 1;
   int high = 1000;

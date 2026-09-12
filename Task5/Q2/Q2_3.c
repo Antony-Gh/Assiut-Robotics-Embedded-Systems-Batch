@@ -9,6 +9,15 @@
 Time complexity: O(n).
 Space complexity: O(1).
 */
+/**
+ * @brief Computes the nth Fibonacci number iteratively.
+ * 
+ * Uses a constant amount of memory (O(1) space) and computes the number 
+ * in linear time (O(n)).
+ * 
+ * @param n The position of the Fibonacci number to compute.
+ * @return The nth Fibonacci number.
+ */
 uint64_t fibonacci(unsigned int n)
 {
     uint64_t a = 0;
@@ -24,6 +33,13 @@ uint64_t fibonacci(unsigned int n)
     return a;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Tests the fibonacci function by computing the 10th Fibonacci number.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void)
 {
     printf("Fibonacci(10) = %llu\n",

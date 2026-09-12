@@ -1,6 +1,13 @@
 /* Read a VLA matrix, report its statistics, and calculate each row sum. */
 #include <stdio.h>
 
+/**
+ * @brief Prints a 2D matrix to the console.
+ * 
+ * @param rows The number of rows in the matrix.
+ * @param cols The number of columns in the matrix.
+ * @param matrix The 2D array (Variable-Length Array) to be printed.
+ */
 void printMatrix(int rows, int cols, const int matrix[rows][cols]) {
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++)
@@ -10,6 +17,17 @@ void printMatrix(int rows, int cols, const int matrix[rows][cols]) {
   }
 }
 
+/**
+ * @brief Calculates the minimum, maximum, and average values in a 2D matrix.
+ * 
+ * @param rows The number of rows in the matrix.
+ * @param cols The number of columns in the matrix.
+ * @param matrix The 2D array.
+ * @param min Pointer to store the minimum value.
+ * @param max Pointer to store the maximum value.
+ * @param average Pointer to store the average value.
+ * @return 1 on success, 0 on invalid dimensions or NULL pointers.
+ */
 int matrixStats(int rows, int cols, const int matrix[rows][cols], int *min,
                 int *max, double *average) {
   if (rows <= 0 || cols <= 0 || min == NULL || max == NULL || average == NULL)
@@ -37,6 +55,16 @@ int matrixStats(int rows, int cols, const int matrix[rows][cols], int *min,
   return 1;
 }
 
+/**
+ * @brief Calculates the sum of each row and finds the maximum row sum.
+ * 
+ * @param rows The number of rows in the matrix.
+ * @param cols The number of columns in the matrix.
+ * @param matrix The 2D array.
+ * @param sums An array to store the sum of each row.
+ * @param maxSum Pointer to store the maximum sum among all rows.
+ * @return 1 on success, 0 on invalid dimensions or NULL pointers.
+ */
 int rowSums(int rows, int cols, const int matrix[rows][cols], long long sums[],
             long long *maxSum) {
   if (rows <= 0 || cols <= 0 || sums == NULL || maxSum == NULL)
@@ -58,6 +86,14 @@ int rowSums(int rows, int cols, const int matrix[rows][cols], long long sums[],
   return 1;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Prompts the user for matrix dimensions and elements, prints the matrix,
+ * and calculates its overall statistics and row-specific sums.
+ * 
+ * @return 0 upon successful execution, 1 on invalid input.
+ */
 int main(void) {
   int rows, cols;
 

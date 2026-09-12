@@ -2,6 +2,16 @@
 /* Task 2 bonus: determine whether a square matrix equals its transpose. */
 #include <stdio.h>
 
+/**
+ * @brief Checks if a given matrix is symmetric.
+ * 
+ * A symmetric matrix is a square matrix that is equal to its transpose (matrix[i][j] == matrix[j][i]).
+ * 
+ * @param rows The number of rows.
+ * @param cols The number of columns.
+ * @param matrix The 2D array to check.
+ * @return 1 if the matrix is symmetric, 0 otherwise.
+ */
 int isSymmetric(int rows, int cols, const int matrix[rows][cols]) {
   if (rows != cols)
     return 0;
@@ -14,6 +24,13 @@ int isSymmetric(int rows, int cols, const int matrix[rows][cols]) {
   return 1;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Tests the isSymmetric function with a sample 3x3 matrix.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   int matrix[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
   if (isSymmetric(3, 3, matrix)) {

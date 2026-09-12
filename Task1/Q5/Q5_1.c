@@ -1,6 +1,15 @@
 /* Task 1, Q5.1: map a numeric day selection to a weekday with switch. */
 #include <stdio.h>
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * This program asks the user to input a day number (from 1 to 7).
+ * It uses a switch statement to map the numeric input to the corresponding
+ * weekday name (e.g., 1 -> Monday) and prints it to the console.
+ * 
+ * @return 0 upon successful execution, 1 if the input is not a valid number.
+ */
 int main(void)
 {
     int day;

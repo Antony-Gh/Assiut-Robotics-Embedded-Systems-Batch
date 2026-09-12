@@ -10,11 +10,27 @@ typedef struct {
   int math;
 } Student;
 
+/**
+ * @brief Calculates the total marks of a student.
+ * 
+ * @param s Pointer to the Student struct.
+ * @return The sum of Arabic, English, and Math marks.
+ */
 static int total_marks(const Student *s) {
   return s->arabic + s->english + s->math;
 }
 
 /* Returns nonzero if a should appear before b. */
+/**
+ * @brief Compares two students for sorting.
+ * 
+ * A student comes before another if they have a higher total mark.
+ * If total marks are equal, they are sorted alphabetically by name.
+ * 
+ * @param a Pointer to the first student.
+ * @param b Pointer to the second student.
+ * @return 1 (nonzero) if student 'a' should appear before student 'b', 0 otherwise.
+ */
 static int comes_before(const Student *a, const Student *b) {
   int total_a = total_marks(a);
   int total_b = total_marks(b);
@@ -25,6 +41,15 @@ static int comes_before(const Student *a, const Student *b) {
   return strcmp(a->name, b->name) < 0;
 }
 
+/**
+ * @brief Sorts an array of students using Bubble Sort.
+ * 
+ * Sorts students based on their total marks (descending) and then by name 
+ * (alphabetical) using the comes_before function.
+ * 
+ * @param students The array of Student structs to sort.
+ * @param count The number of students in the array.
+ */
 static void sort_students(Student students[], size_t count) {
   for (size_t i = 0; i < count; ++i) {
     for (size_t j = 0; j + 1 < count - i; ++j) {
@@ -37,6 +62,14 @@ static void sort_students(Student students[], size_t count) {
   }
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Prompts the user for the number of students, dynamically allocates memory 
+ * for them, reads their details, sorts them, and then prints the sorted list.
+ * 
+ * @return 0 upon successful execution, 1 on error.
+ */
 int main(void) {
   size_t count;
 

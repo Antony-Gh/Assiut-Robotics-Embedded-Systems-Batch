@@ -10,6 +10,16 @@ typedef struct {
   double y;
 } Point;
 
+/**
+ * @brief Calculates the squared distance between a point and an origin.
+ * 
+ * Uses the formula: dx^2 + dy^2. We use squared distance to avoid expensive 
+ * square root calculations since we only need it for comparison.
+ * 
+ * @param p The point to calculate the distance for.
+ * @param origin The reference origin point.
+ * @return The squared distance as a double.
+ */
 double squared_distance(Point p, Point origin) {
   double dx = p.x - origin.x;
   double dy = p.y - origin.y;
@@ -17,6 +27,16 @@ double squared_distance(Point p, Point origin) {
   return dx * dx + dy * dy;
 }
 
+/**
+ * @brief Merges two sorted sub-arrays into a single sorted array based on distance.
+ * 
+ * @param arr The original array containing the two sub-arrays.
+ * @param temp A temporary buffer array used for merging.
+ * @param left The starting index of the left sub-array.
+ * @param mid The ending index of the left sub-array (and start of the right).
+ * @param right The ending index of the right sub-array.
+ * @param origin The reference point used for calculating distances.
+ */
 void merge(Point arr[], Point temp[], size_t left, size_t mid, size_t right,
            Point origin) {
   size_t i = left;
@@ -41,6 +61,15 @@ void merge(Point arr[], Point temp[], size_t left, size_t mid, size_t right,
     arr[p] = temp[p];
 }
 
+/**
+ * @brief Recursively divides the array and sorts it using merge sort.
+ * 
+ * @param arr The array to sort.
+ * @param temp A temporary array used for merging.
+ * @param left The starting index of the sub-array.
+ * @param right The ending index of the sub-array.
+ * @param origin The reference point used for calculating distances.
+ */
 void merge_sort_recursive(Point arr[], Point temp[], size_t left, size_t right,
                           Point origin) {
   if (right - left <= 1)
@@ -54,6 +83,17 @@ void merge_sort_recursive(Point arr[], Point temp[], size_t left, size_t right,
   merge(arr, temp, left, mid, right, origin);
 }
 
+/**
+ * @brief Sorts an array of points based on their distance from an origin.
+ * 
+ * This is the public entry point for sorting. It handles memory allocation 
+ * for the temporary buffer needed by merge sort.
+ * 
+ * @param arr The array of points to sort.
+ * @param n The number of points in the array.
+ * @param origin The reference point used for calculating distances.
+ * @return 1 on success, 0 on memory allocation failure or invalid size.
+ */
 int sort_points(Point arr[], size_t n, Point origin) {
   if (n < 2)
     return 1;
@@ -72,6 +112,14 @@ int sort_points(Point arr[], size_t n, Point origin) {
   return 1;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Defines an array of points and an origin, sorts the points based on their 
+ * distance to the origin using merge sort, and prints the result.
+ * 
+ * @return 0 upon successful execution, 1 on error.
+ */
 int main(void) {
   Point points[] = {{3, 4}, {1, 1}, {0, 2}, {5, 5}};
 

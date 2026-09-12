@@ -3,6 +3,13 @@
 
 #include <stdio.h>
 
+/**
+ * @brief Replaces all whitespace characters in a string with underscores.
+ * 
+ * Modifies the string in place.
+ * 
+ * @param str The string to modify.
+ */
 void replaceWhitespace(char str[]) {
   for (int i = 0; str[i] != '\0'; i++) {
     if (isspace((unsigned char)str[i]))
@@ -10,6 +17,13 @@ void replaceWhitespace(char str[]) {
   }
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Demonstrates the replaceWhitespace function on sample strings.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   char str[] = "Hello, World!";
   replaceWhitespace(str);

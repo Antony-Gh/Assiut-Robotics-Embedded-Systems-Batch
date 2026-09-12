@@ -11,6 +11,15 @@ typedef struct {
   int score;
 } Student;
 
+/**
+ * @brief Compares two students first by name, then by score.
+ * 
+ * This is used to maintain a stable sorting order.
+ * 
+ * @param a Pointer to the first Student.
+ * @param b Pointer to the second Student.
+ * @return A negative number if a < b, positive if a > b, 0 if equal.
+ */
 int compare_students(const Student *a, const Student *b) {
   int name_result = strcmp(a->name, b->name);
 
@@ -26,6 +35,15 @@ int compare_students(const Student *a, const Student *b) {
   return 0;
 }
 
+/**
+ * @brief Merges two sorted halves of a Student array into a temporary array.
+ * 
+ * @param arr The original array containing the halves.
+ * @param temp The temporary array used for merging.
+ * @param left The starting index of the left half.
+ * @param mid The starting index of the right half.
+ * @param right The ending index (exclusive) of the right half.
+ */
 void merge_students(Student arr[], Student temp[], size_t left, size_t mid,
                     size_t right) {
   size_t i = left;
@@ -49,6 +67,14 @@ void merge_students(Student arr[], Student temp[], size_t left, size_t mid,
     arr[p] = temp[p];
 }
 
+/**
+ * @brief Recursively splits the Student array for Merge Sort.
+ * 
+ * @param arr The array to sort.
+ * @param temp A temporary array used for merging.
+ * @param left The starting index of the range to sort.
+ * @param right The ending index (exclusive) of the range.
+ */
 void sort_students_recursive(Student arr[], Student temp[], size_t left,
                              size_t right) {
   if (right - left <= 1)
@@ -62,6 +88,15 @@ void sort_students_recursive(Student arr[], Student temp[], size_t left,
   merge_students(arr, temp, left, mid, right);
 }
 
+/**
+ * @brief Sorts an array of Students using the Merge Sort algorithm.
+ * 
+ * Memory for a temporary array is allocated dynamically to aid the merge process.
+ * 
+ * @param arr The array of Students to sort.
+ * @param n The total number of elements.
+ * @return 1 on success, 0 on failure (e.g., memory allocation error).
+ */
 int sort_students(Student arr[], size_t n) {
   if (n < 2)
     return 1;
@@ -80,6 +115,13 @@ int sort_students(Student arr[], size_t n) {
   return 1;
 }
 
+/**
+ * @brief The main entry point of the program.
+ * 
+ * Tests the merge sort implementation on an array of Students.
+ * 
+ * @return 0 upon successful execution.
+ */
 int main(void) {
   Student students[] = {
       {"Sara", 90}, {"Ahmed", 85}, {"Sara", 75}, {"Omar", 80}, {"Ahmed", 95}};
