@@ -1,4 +1,5 @@
 /**
+ * Demonstrates the ownership rules for malloc, calloc, realloc, and free.
 
 
 Q5.1 — Difference between malloc(), calloc(), realloc(), and free()
@@ -49,17 +50,16 @@ int main(void) {
   /* Allocate memory for 5 integers and initialize all bytes to zero */
   int *b = calloc(5, sizeof *b);
 
-  /* Resize the allocation to 10 integers */
+  /* Resize the allocation to 10 integers without losing the original on failure. */
   int *temp = realloc(a, 10 * sizeof *a);
 
   /* If the reallocation is successful, update the pointer */
   if (temp != NULL)
     a = temp;
 
-  /* Free the memory */
+  /* temp aliases a after success, so free the allocation exactly once. */
   free(a);
   free(b);
-  free(temp);
 
   return 0;
 }

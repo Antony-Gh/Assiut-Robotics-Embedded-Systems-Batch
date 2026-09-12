@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stddef.h>
 
+/* Return floor(sqrt(n)) without multiplication overflow. */
 size_t integer_sqrt(size_t n)
 {
     size_t root = 0;
@@ -23,25 +24,25 @@ int jump_search(const int arr[], size_t n, int target)
         step = 1;
 
     size_t start = 0;
-    size_t end = step;
+    size_t end = step - 1;
 
     while (start < n)
     {
-        if (arr[end < n ? end : n - 1] >= target)
+        if (arr[end] >= target)
             break;
 
-        start = end;
+        start = end + 1;
 
         if (start >= n)
             return -1;
 
-        if (step > n - start)
-            end = n;
+        if (step - 1 > n - 1 - start)
+            end = n - 1;
         else
-            end = start + step;
+            end = start + step - 1;
     }
 
-    for (size_t i = start; i < end; i++)
+    for (size_t i = start; i <= end; i++)
     {
         if (arr[i] == target)
             return (int)i;

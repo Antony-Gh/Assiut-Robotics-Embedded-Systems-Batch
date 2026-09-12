@@ -25,7 +25,7 @@ Each week introduces new concepts and builds upon the previous weeks. The exerci
 * Time and space complexity analysis
 * Efficient implementation techniques
 
-Each week contains its own `README.md` with explanations of the tasks, concepts, approaches, and important notes.
+Each task contains its own `README.md` with explanations of the exercises, concepts, approaches, and important notes.
 
 ---
 
@@ -33,11 +33,11 @@ Each week contains its own `README.md` with explanations of the tasks, concepts,
 
 | Week       | Main Topics                                                              | Documentation                    |
 | ---------- | ------------------------------------------------------------------------ | -------------------------------- |
-| **Week 1** | Data Types, Operators, Integer Ranges, Bit Manipulation, Loops, `switch` | [Week 1 README](Week1/README.md) |
-| **Week 2** | Pointers, Arrays, Strings, 2D Arrays, Bubble Sort, Matrix Operations     | [Week 2 README](Week2/README.md) |
-| **Week 3** | Structures, `typedef`, `enum`, `union`, Preprocessor, Complex Numbers    | [Week 3 README](Week3/README.md) |
-| **Week 4** | Bitwise Algorithms, Macros, Header Files, Dynamic Memory Allocation      | [Week 4 README](Week4/README.md) |
-| **Week 5** | Searching, Sorting, GCD, Fibonacci, Divide-and-Conquer, Complexity       | [Week 5 README](Week5/README.md) |
+| **Task 1** | Data Types, Operators, Integer Ranges, Bit Manipulation, Loops, `switch` | [Task 1 README](Task1/README.md) |
+| **Task 2** | Pointers, Arrays, Strings, 2D Arrays, Bubble Sort, Matrix Operations     | [Task 2 README](Task2/README.md) |
+| **Task 3** | Structures, `typedef`, `enum`, `union`, Preprocessor, Complex Numbers    | [Task 3 README](Task3/README.md) |
+| **Task 4** | Bitwise Algorithms, Macros, Header Files, Dynamic Memory Allocation      | [Task 4 README](Task4/README.md) |
+| **Task 5** | Searching, Sorting, GCD, Fibonacci, Divide-and-Conquer, Complexity       | [Task 5 README](Task5/README.md) |
 
 ---
 
@@ -91,7 +91,7 @@ Week 1 introduces the fundamental building blocks of the C language.
 
 Understand the basic building blocks of C and become comfortable with operators, control flow, functions, and low-level bit manipulation.
 
-[**View Week 1 README →**](Week1/README.md)
+[**View Task 1 README →**](Task1/README.md)
 
 ---
 
@@ -151,7 +151,7 @@ Week 2 builds on the fundamentals by introducing pointers and more advanced data
 
 Develop a strong understanding of pointers, arrays, strings, and two-dimensional data while practicing in-place algorithms and function-based programming.
 
-[**View Week 2 README →**](Week2/README.md)
+[**View Task 2 README →**](Task2/README.md)
 
 ---
 
@@ -235,7 +235,7 @@ Using a constant representation of π for calculating:
 
 Learn how C can represent complex data using structures, unions, and enumerations while understanding how memory layout and the preprocessor affect programs.
 
-[**View Week 3 README →**](Week3/README.md)
+[**View Task 3 README →**](Task3/README.md)
 
 ---
 
@@ -296,7 +296,7 @@ Applications include:
 
 Become comfortable with low-level bit manipulation, reusable macros, header organization, and safe dynamic memory management.
 
-[**View Week 4 README →**](Week4/README.md)
+[**View Task 4 README →**](Task4/README.md)
 
 ---
 
@@ -379,7 +379,7 @@ Selected algorithmic problems include:
 
 Develop algorithmic thinking and understand how the choice of algorithm affects time and memory requirements.
 
-[**View Week 5 README →**](Week5/README.md)
+[**View Task 5 README →**](Task5/README.md)
 
 ---
 
@@ -480,19 +480,19 @@ Throughout the five weeks, the exercises progressively develop the following ski
 ```text
 C-Programming/
 │
-├── Week1/
+├── Task1/
 │   └── README.md
 │
-├── Week2/
+├── Task2/
 │   └── README.md
 │
-├── Week3/
+├── Task3/
 │   └── README.md
 │
-├── Week4/
+├── Task4/
 │   └── README.md
 │
-├── Week5/
+├── Task5/
 │   └── README.md
 │
 └── README.md

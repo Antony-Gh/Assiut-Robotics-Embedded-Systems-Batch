@@ -15,7 +15,7 @@ The task contains two questions:
 
 ### Objective
 
-Create a reusable header file named `types.h` that provides convenient aliases for standard signed and unsigned integer types.
+Create a reusable header file named `STD_TYPES.h` that provides convenient aliases for standard signed and unsigned integer types.
 
 ### Types to include
 
@@ -39,7 +39,7 @@ The header can also provide aliases for fixed-width integer types, such as 8-bit
 * Use an include guard to prevent the header from being included more than once.
 * Include the standard header needed for any fixed-width types used.
 * Keep the typedef names consistent throughout the project.
-* Include `types.h` in source files that need these aliases.
+* Include `STD_TYPES.h` in source files that need these aliases.
 
 ### Important C17 note
 
