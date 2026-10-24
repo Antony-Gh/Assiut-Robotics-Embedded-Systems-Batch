@@ -9,3 +9,5 @@
 **/.cbuilder/**
 
 **/.audit-build/**
+
+**/Debug/**
