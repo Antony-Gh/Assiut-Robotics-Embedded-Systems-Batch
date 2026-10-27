@@ -80,8 +80,6 @@ static volatile uint8_t g_btn1Event = 0; /* PB1: Mode button press event */
 static uint32_t lastSnakeTick = 0;
 static uint32_t lastBtn0PressTick = 0;
 static uint32_t lastBtn1PressTick = 0;
-static uint8_t  btn0LastState = 0;
-static uint8_t  btn1LastState = 0;
 
 /* Snake effect state machine variables */
 static uint8_t snakeVal = 0;
@@ -138,8 +136,9 @@ int main(void)
 
   /* Settle time to avoid power-on capacitor transients on PB0/PB1 */
   HAL_Delay(100);
-  btn0LastState = (GPIOB->IDR & (1U << 0)) ? 1 : 0;
-  btn1LastState = (GPIOB->IDR & (1U << 1)) ? 1 : 0;
+  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_0 | GPIO_PIN_1);
+  lastBtn0PressTick = HAL_GetTick();
+  lastBtn1PressTick = HAL_GetTick();
   g_btn0Event = 0;
   g_btn1Event = 0;
 
@@ -569,50 +568,54 @@ Task1_Mode_t Task1_GetMode(void)
 }
 
 /**
-  * @brief  Button input polling and debouncing handler
-  *         Uses clean rising-edge latching with release tracking so each physical
-  *         press generates EXACTLY ONE event (never double increments).
+  * @brief  EXTI Interrupt Callback (Triggered instantaneously by hardware on rising edge)
+  *         Catches short 1ms button pulses in Proteus simulation without fail.
+  *         Debounced with 200ms lockout so each press generates EXACTLY ONE event.
   */
-static void Handle_Button_Inputs(void)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   uint32_t now = HAL_GetTick();
   if (now < 300) return; /* Ignore power-on settling */
 
-  /* 1. Read Switch 1 (PB0 - Counter Button) */
-  uint8_t btn0 = (GPIOB->IDR & (1U << 0)) ? 1 : 0;
-  if (btn0 == 1 && btn0LastState == 0)
+  if (GPIO_Pin == SW_COUNTER_PIN) /* PB0: Counter Increment Button */
   {
-    /* Clean rising edge (press) */
-    if ((now - lastBtn0PressTick) >= 150)
+    if ((now - lastBtn0PressTick) >= 200)
     {
       lastBtn0PressTick = now;
       g_btn0Event = 1;
     }
   }
-  btn0LastState = btn0;
-
-  /* 2. Read Switch 2 (PB1 - Mode Selector Button) */
-  uint8_t btn1 = (GPIOB->IDR & (1U << 1)) ? 1 : 0;
-  if (btn1 == 1 && btn1LastState == 0)
+  else if (GPIO_Pin == SW_MODE_PIN) /* PB1: Mode Selector Button */
   {
-    /* Clean rising edge (press) */
-    if ((now - lastBtn1PressTick) >= 200)
+    if ((now - lastBtn1PressTick) >= 250)
     {
       lastBtn1PressTick = now;
       g_btn1Event = 1;
     }
   }
-  btn1LastState = btn1;
 }
 
 /**
-  * @brief  EXTI Interrupt Callback
-  *         Edge detection and debouncing is handled in Handle_Button_Inputs() to
-  *         guarantee zero duplicate triggers from analog capacitor discharge.
+  * @brief  Button input polling backup (ensures reliability in both hardware and simulation)
   */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+static void Handle_Button_Inputs(void)
 {
-  (void)GPIO_Pin;
+  uint32_t now = HAL_GetTick();
+  if (now < 300) return;
+
+  /* Backup polling for PB0 (Counter) */
+  if ((GPIOB->IDR & (1U << 0)) && !g_btn0Event && ((now - lastBtn0PressTick) >= 200))
+  {
+    lastBtn0PressTick = now;
+    g_btn0Event = 1;
+  }
+
+  /* Backup polling for PB1 (Mode) */
+  if ((GPIOB->IDR & (1U << 1)) && !g_btn1Event && ((now - lastBtn1PressTick) >= 250))
+  {
+    lastBtn1PressTick = now;
+    g_btn1Event = 1;
+  }
 }
 
 /**
