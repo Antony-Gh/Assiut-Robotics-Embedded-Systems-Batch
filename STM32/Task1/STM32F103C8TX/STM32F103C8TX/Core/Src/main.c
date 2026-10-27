@@ -78,7 +78,6 @@ static volatile uint8_t g_btn1Event = 0; /* PB1: Mode button press event */
 
 /* Timestamp trackers for non-blocking timing */
 static uint32_t lastSnakeTick = 0;
-static uint32_t lastPwmTick = 0;
 static uint32_t lastBtn0PressTick = 0;
 static uint32_t lastBtn1PressTick = 0;
 static uint8_t  btn0LastState = 0;
@@ -91,7 +90,6 @@ static uint8_t snakeStep = 0;
 
 /* PWM duty cycle variable */
 static float pwmDuty = 50.0f; /* Default 50% duty cycle (10ms on, 10ms off) */
-static int8_t pwmDirection = 1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -138,13 +136,15 @@ int main(void)
   /* Initialize Hardware Timer 4 Register-Level 50Hz PWM Output on PB8 */
   Task1_PWM_Timer4_RegisterInit();
 
-  /* Brief startup blink sequence on the 8 LEDs to confirm hardware health */
-  HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_SET);
-  HAL_Delay(250);
-  HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_RESET);
-  HAL_Delay(200);
+  /* Settle time to avoid power-on capacitor transients on PB0/PB1 */
+  HAL_Delay(100);
+  btn0LastState = (GPIOB->IDR & (1U << 0)) ? 1 : 0;
+  btn1LastState = (GPIOB->IDR & (1U << 1)) ? 1 : 0;
+  g_btn0Event = 0;
+  g_btn1Event = 0;
 
-  /* Reset all states */
+  /* Reset all states to Deliverable 1: Snake Effect */
+  currentMode = MODE_SNAKE_EFFECT;
   Task1_SnakeEffect_Reset();
   Task1_Counter_Reset();
 
@@ -422,41 +422,25 @@ void Task1_PWM_50Hz_SetDuty(float duty_percent)
 }
 
 /**
-  * @brief  PWM Demonstration Step (Smooth duty cycle sweep for LED breathing or servo)
+  * @brief  PWM Demonstration Step
+  *         Outputs exact hardware 50Hz PWM on PB8, and displays active duty cycle
+  *         cleanly on the 8 LEDs as a solid bar meter (e.g. 50% = 4 LEDs lit)
   */
 void Task1_PWM_50Hz_Demo_Step(void)
 {
-  /* Sweep duty cycle back and forth between 5% and 95% */
-  pwmDuty += (pwmDirection * 2.5f);
-  if (pwmDuty >= 95.0f)
-  {
-    pwmDuty = 95.0f;
-    pwmDirection = -1;
-  }
-  else if (pwmDuty <= 5.0f)
-  {
-    pwmDuty = 5.0f;
-    pwmDirection = 1;
-  }
-
-  /* Update hardware timer PWM */
+  /* Update hardware Timer 4 PWM (PB8) */
   Task1_PWM_50Hz_SetDuty(pwmDuty);
 
-  /* Also mirror onto all 8 LEDs in software so breathing effect is visible */
-  uint32_t on_time_us  = (uint32_t)(pwmDuty * 200.0f);   /* 0 to 20000 us */
-  uint32_t off_time_us = 20000 - on_time_us;
+  /* Display duty cycle on 8 LEDs as a clean, steady meter (1 to 8 LEDs) */
+  uint8_t numLeds = (uint8_t)((pwmDuty / 100.0f) * 8.0f + 0.5f);
+  if (numLeds > 8) numLeds = 8;
 
-  /* Fast microsecond PWM pulse on LEDs */
-  if (on_time_us > 0)
+  uint8_t pattern = 0;
+  for (uint8_t i = 0; i < numLeds; i++)
   {
-    GPIOA->ODR |= 0x00FF;
-    for (volatile uint32_t i = 0; i < (on_time_us / 2); i++) { __NOP(); }
+    pattern |= (uint8_t)(1U << i);
   }
-  if (off_time_us > 0)
-  {
-    GPIOA->ODR &= ~0x00FF;
-    for (volatile uint32_t i = 0; i < (off_time_us / 2); i++) { __NOP(); }
-  }
+  GPIOA->ODR = (GPIOA->ODR & 0xFF00) | (uint16_t)pattern;
 }
 
 /* ========================================================================== */
@@ -556,20 +540,7 @@ void Task1_SetMode(Task1_Mode_t mode)
 {
   currentMode = mode;
 
-  /* Turn off all LEDs first */
-  HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_RESET);
-  HAL_Delay(80);
-
-  /* Quick visual flash indication: mode+1 flashes (Safe here in main thread context) */
-  for (uint8_t f = 0; f <= (uint8_t)mode && f < 4; f++)
-  {
-    HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_SET);
-    HAL_Delay(70);
-    HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_RESET);
-    HAL_Delay(70);
-  }
-
-  /* Reset mode-specific states */
+  /* Reset mode-specific states without disruptive flashing */
   if (mode == MODE_SNAKE_EFFECT)
   {
     Task1_SnakeEffect_Reset();
@@ -588,7 +559,7 @@ void Task1_SetMode(Task1_Mode_t mode)
   }
   else if (mode == MODE_PWM_50HZ)
   {
-    Task1_PWM_50Hz_SetDuty(pwmDuty);
+    Task1_PWM_50Hz_Demo_Step();
   }
 }
 
@@ -598,67 +569,50 @@ Task1_Mode_t Task1_GetMode(void)
 }
 
 /**
-  * @brief  Button input polling and debouncing handler (fallback if EXTI disabled)
+  * @brief  Button input polling and debouncing handler
+  *         Uses clean rising-edge latching with release tracking so each physical
+  *         press generates EXACTLY ONE event (never double increments).
   */
 static void Handle_Button_Inputs(void)
 {
   uint32_t now = HAL_GetTick();
+  if (now < 300) return; /* Ignore power-on settling */
 
-  /* 1. Read Switch 1 (PB0 - Counter Button) via GPIOB->IDR */
+  /* 1. Read Switch 1 (PB0 - Counter Button) */
   uint8_t btn0 = (GPIOB->IDR & (1U << 0)) ? 1 : 0;
-  if (btn0 != btn0LastState)
+  if (btn0 == 1 && btn0LastState == 0)
   {
-    if ((now - lastBtn0PressTick) >= BUTTON_DEBOUNCE_MS)
-    {
-      if (btn0 == 1) /* Rising edge detected */
-      {
-        g_btn0Event = 1;
-      }
-      lastBtn0PressTick = now;
-      btn0LastState = btn0;
-    }
-  }
-
-  /* 2. Read Switch 2 (PB1 - Mode Selector Button) via GPIOB->IDR */
-  uint8_t btn1 = (GPIOB->IDR & (1U << 1)) ? 1 : 0;
-  if (btn1 != btn1LastState)
-  {
-    if ((now - lastBtn1PressTick) >= BUTTON_DEBOUNCE_MS)
-    {
-      if (btn1 == 1) /* Rising edge detected */
-      {
-        g_btn1Event = 1;
-      }
-      lastBtn1PressTick = now;
-      btn1LastState = btn1;
-    }
-  }
-}
-
-/**
-  * @brief  EXTI Interrupt Callback (triggered on rising edge of PB0 or PB1)
-  *         Zero blocking delays inside ISR: sets flags for safe execution in main loop
-  */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  uint32_t now = HAL_GetTick();
-
-  if (GPIO_Pin == SW_COUNTER_PIN) /* PB0: Counter Button */
-  {
-    if ((now - lastBtn0PressTick) >= BUTTON_DEBOUNCE_MS)
+    /* Clean rising edge (press) */
+    if ((now - lastBtn0PressTick) >= 150)
     {
       lastBtn0PressTick = now;
       g_btn0Event = 1;
     }
   }
-  else if (GPIO_Pin == SW_MODE_PIN) /* PB1: Mode Selector Button */
+  btn0LastState = btn0;
+
+  /* 2. Read Switch 2 (PB1 - Mode Selector Button) */
+  uint8_t btn1 = (GPIOB->IDR & (1U << 1)) ? 1 : 0;
+  if (btn1 == 1 && btn1LastState == 0)
   {
-    if ((now - lastBtn1PressTick) >= BUTTON_DEBOUNCE_MS)
+    /* Clean rising edge (press) */
+    if ((now - lastBtn1PressTick) >= 200)
     {
       lastBtn1PressTick = now;
       g_btn1Event = 1;
     }
   }
+  btn1LastState = btn1;
+}
+
+/**
+  * @brief  EXTI Interrupt Callback
+  *         Edge detection and debouncing is handled in Handle_Button_Inputs() to
+  *         guarantee zero duplicate triggers from analog capacitor discharge.
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  (void)GPIO_Pin;
 }
 
 /**
@@ -688,7 +642,7 @@ void Task1_Run(void)
 
     if (currentMode == MODE_CONTROLLED_COUNTER)
     {
-      /* Deliverable 3: Increment counter from 0 to 8 (wraps to 0) */
+      /* Deliverable 3: Increment counter by exactly 1 (0 to 8, then wraps to 0) */
       Task1_Counter_Increment();
       if (currentImpl == IMPL_REGISTER)
       {
@@ -711,7 +665,7 @@ void Task1_Run(void)
       const float presets[5] = {10.0f, 25.0f, 50.0f, 75.0f, 90.0f};
       step = (step + 1) % 5;
       pwmDuty = presets[step];
-      Task1_PWM_50Hz_SetDuty(pwmDuty);
+      Task1_PWM_50Hz_Demo_Step();
     }
   }
 
@@ -737,7 +691,7 @@ void Task1_Run(void)
     }
 
     /* Mode 1: Deliverable 3 - Controlled Counter (0 to 8 via PB0 Switch)
-     * LEDs maintain their state steadily and update instantly on each PB0 press!
+     * LEDs maintain their state steadily and update cleanly on each PB0 press!
      */
     case MODE_CONTROLLED_COUNTER:
     {
@@ -745,14 +699,10 @@ void Task1_Run(void)
       break;
     }
 
-    /* Mode 2: Deliverable 2 - 50Hz PWM Signal Demo & LED Breathing */
+    /* Mode 2: Deliverable 2 - 50Hz PWM Signal Demo & LED Duty Bar Meter */
     case MODE_PWM_50HZ:
     {
-      if ((now - lastPwmTick) >= 20) /* 20ms refresh */
-      {
-        lastPwmTick = now;
-        Task1_PWM_50Hz_Demo_Step();
-      }
+      /* Steady state display: PB8 outputs 50Hz PWM, LEDs show duty meter */
       break;
     }
 
