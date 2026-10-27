@@ -167,68 +167,86 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
 #if (SELECTED_CLOCK_CONFIG == CLOCK_CONFIG_HSE_72MHZ)
-  /** 
-   * Attempt External Crystal (HSE = 8MHz) with PLL to 72MHz
-   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9; /* 8 MHz * 9 = 72 MHz */
-  
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK)
+  /* Check if HSE can start with a non-blocking counter timeout */
+  uint8_t hse_ready = 0;
+  RCC->CR |= RCC_CR_HSEON;
+  for (volatile uint32_t i = 0; i < 5000; i++)
   {
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                                |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2; /* 36 MHz */
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1; /* 72 MHz */
+    if (RCC->CR & RCC_CR_HSERDY) { hse_ready = 1; break; }
+  }
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) == HAL_OK)
+  if (hse_ready)
+  {
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9; /* 8 MHz * 9 = 72 MHz */
+  
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK)
     {
-      return; /* 72 MHz configured successfully */
+      RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                                  |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+      RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+      RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+      RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2; /* 36 MHz */
+      RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1; /* 72 MHz */
+
+      if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) == HAL_OK)
+      {
+        return;
+      }
     }
   }
 
 #elif (SELECTED_CLOCK_CONFIG == CLOCK_CONFIG_HSE_8MHZ)
-  /**
-   * Attempt External Crystal (HSE = 8MHz) directly
-   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK)
+  /* Check if HSE can start with a non-blocking counter timeout */
+  uint8_t hse_ready = 0;
+  RCC->CR |= RCC_CR_HSEON;
+  for (volatile uint32_t i = 0; i < 5000; i++)
   {
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                                |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+    if (RCC->CR & RCC_CR_HSERDY) { hse_ready = 1; break; }
+  }
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) == HAL_OK)
+  if (hse_ready)
+  {
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK)
     {
-      return; /* 8 MHz HSE configured successfully */
+      RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                                  |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+      RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+      RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+      RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+      RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+      if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) == HAL_OK)
+      {
+        return;
+      }
     }
   }
 #endif
 
   /**
-   * ROBUST FALLBACK TO HSI (Internal 8MHz RC Oscillator):
-   * If HSE fails (e.g. Proteus simulation, missing crystal, or wrong pin connections),
-   * seamlessly fallback to HSI so the MCU NEVER freezes or hangs in Error_Handler()!
+   * Primary / Fallback: Internal 8 MHz HSI Clock
+   * Guaranteed to work immediately in Proteus and on any STM32 board.
    */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.HSEState = RCC_HSE_OFF;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  HAL_RCC_OscConfig(&RCC_OscInitStruct);
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -236,7 +254,11 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0);
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**

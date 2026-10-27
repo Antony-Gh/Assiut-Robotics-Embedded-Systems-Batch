@@ -20,11 +20,11 @@ extern "C" {
 /* ========================================================================== */
 /* Clock Configuration Options                                                */
 /* ========================================================================== */
-#define CLOCK_CONFIG_HSI_8MHZ       0  /* Internal 8 MHz RC Oscillator */
+#define CLOCK_CONFIG_HSI_8MHZ       0  /* Internal 8 MHz RC Oscillator (Standard for Proteus) */
 #define CLOCK_CONFIG_HSE_8MHZ       1  /* External Crystal 8 MHz (Direct HSE) */
 #define CLOCK_CONFIG_HSE_72MHZ      2  /* External Crystal 8 MHz + PLL -> 72 MHz Max Speed */
 
-#define SELECTED_CLOCK_CONFIG       CLOCK_CONFIG_HSE_8MHZ
+#define SELECTED_CLOCK_CONFIG       CLOCK_CONFIG_HSI_8MHZ
 
 /* ========================================================================== */
 /* Pin Mapping Definitions                                                    */
