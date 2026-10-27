@@ -11,3 +11,5 @@
 **/.audit-build/**
 
 **/Debug/**
+
+**/.metadata/**
