@@ -59,25 +59,32 @@ extern "C" {
 #define PWM_SW_PORT         GPIOA
 #define PWM_SW_PIN          GPIO_PIN_0
 
-/* ========================================================================== */
-/* Application Modes                                                          */
-/* ========================================================================== */
-
 typedef enum {
-    MODE_ALL_IN_ONE = 0,    /* Mode 0: Interactive System - Switch modes via button PB1 / long press */
-    MODE_SNAKE_HAL,         /* Mode 1: Snake Effect using STM32 HAL API */
-    MODE_SNAKE_REG,         /* Mode 2: Snake Effect using direct Register-Level GPIO */
-    MODE_COUNTER_HAL,       /* Mode 3: Controlled Counter (0..8) using STM32 HAL */
-    MODE_COUNTER_REG,       /* Mode 4: Controlled Counter (0..8) using direct Register-Level GPIO */
-    MODE_PWM_50HZ_DEMO,     /* Mode 5: 50Hz PWM signal generator with LED fading / servo sweep */
+    MODE_SNAKE_EFFECT = 0,       /* Deliverable 1: Snake Effect (light 1-by-1, turn off 1-by-1) */
+    MODE_CONTROLLED_COUNTER,     /* Deliverable 3: Controlled Counter (0 to 8 on 8 LEDs with switch PB0) */
+    MODE_PWM_50HZ,               /* Deliverable 2: 50Hz PWM Signal Generator (20ms Period on PB8 & PA0) */
     MODE_COUNT_MAX
 } Task1_Mode_t;
+
+/* Backward-compatibility aliases */
+#define MODE_ALL_IN_ONE          MODE_SNAKE_EFFECT
+#define MODE_SNAKE_HAL           MODE_SNAKE_EFFECT
+#define MODE_SNAKE_REG           MODE_SNAKE_EFFECT
+#define MODE_COUNTER_HAL         MODE_CONTROLLED_COUNTER
+#define MODE_COUNTER_REG         MODE_CONTROLLED_COUNTER
+#define MODE_PWM_50HZ_DEMO       MODE_PWM_50HZ
 
 /* Counter Display Styles */
 typedef enum {
     COUNTER_STYLE_BARGRAPH = 0,  /* 0: all off, 1: 1 LED on, ..., 8: 8 LEDs on */
     COUNTER_STYLE_BINARY         /* 0..8 displayed in binary on 8 LEDs */
 } Counter_Style_t;
+
+/* Implementation Engine (Registers vs HAL) */
+typedef enum {
+    IMPL_REGISTER = 0,           /* Direct register operations (ODR, CRL/CRH) */
+    IMPL_HAL                     /* STM32 HAL Library calls */
+} Implementation_t;
 
 /* ========================================================================== */
 /* Function Prototypes                                                        */

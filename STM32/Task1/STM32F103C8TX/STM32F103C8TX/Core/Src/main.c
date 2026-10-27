@@ -60,14 +60,21 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-/* Current operating mode */
-volatile Task1_Mode_t currentMode = DEFAULT_STARTUP_MODE;
+/* Current operating mode (0: Snake Effect, 1: Controlled Counter, 2: 50Hz PWM) */
+volatile Task1_Mode_t currentMode = MODE_SNAKE_EFFECT;
+
+/* Active implementation method: Register Level vs HAL */
+volatile Implementation_t currentImpl = IMPL_REGISTER;
 
 /* Controlled counter value: 0 to 8 */
 volatile uint8_t counterValue = 0;
 
 /* Counter display style (Bar-Graph 0..8 LEDs vs Binary 0..8) */
 volatile Counter_Style_t counterStyle = COUNTER_STYLE_BARGRAPH;
+
+/* Asynchronous button event flags (Safe for EXTI ISR) */
+static volatile uint8_t g_btn0Event = 0; /* PB0: Counter button press event */
+static volatile uint8_t g_btn1Event = 0; /* PB1: Mode button press event */
 
 /* Timestamp trackers for non-blocking timing */
 static uint32_t lastSnakeTick = 0;
@@ -82,8 +89,8 @@ static uint8_t snakeVal = 0;
 static uint8_t snakePhase = 0; /* 0: Turn ON one-by-one, 1: Turn OFF one-by-one */
 static uint8_t snakeStep = 0;
 
-/* PWM duty cycle sweep variable */
-static float pwmDuty = 10.0f;
+/* PWM duty cycle variable */
+static float pwmDuty = 50.0f; /* Default 50% duty cycle (10ms on, 10ms off) */
 static int8_t pwmDirection = 1;
 /* USER CODE END PV */
 
@@ -91,7 +98,6 @@ static int8_t pwmDirection = 1;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 static void Handle_Button_Inputs(void);
-static void Display_Mode_Indication(Task1_Mode_t mode);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -549,7 +555,41 @@ uint8_t Task1_Counter_GetCount(void)
 void Task1_SetMode(Task1_Mode_t mode)
 {
   currentMode = mode;
-  Display_Mode_Indication(mode);
+
+  /* Turn off all LEDs first */
+  HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_RESET);
+  HAL_Delay(80);
+
+  /* Quick visual flash indication: mode+1 flashes (Safe here in main thread context) */
+  for (uint8_t f = 0; f <= (uint8_t)mode && f < 4; f++)
+  {
+    HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_SET);
+    HAL_Delay(70);
+    HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_RESET);
+    HAL_Delay(70);
+  }
+
+  /* Reset mode-specific states */
+  if (mode == MODE_SNAKE_EFFECT)
+  {
+    Task1_SnakeEffect_Reset();
+  }
+  else if (mode == MODE_CONTROLLED_COUNTER)
+  {
+    /* Display the current counter value immediately on the LEDs */
+    if (currentImpl == IMPL_REGISTER)
+    {
+      Task1_Counter_Display_Register(counterValue, counterStyle);
+    }
+    else
+    {
+      Task1_Counter_Display_HAL(counterValue, counterStyle);
+    }
+  }
+  else if (mode == MODE_PWM_50HZ)
+  {
+    Task1_PWM_50Hz_SetDuty(pwmDuty);
+  }
 }
 
 Task1_Mode_t Task1_GetMode(void)
@@ -558,92 +598,38 @@ Task1_Mode_t Task1_GetMode(void)
 }
 
 /**
-  * @brief  Brief LED blink indication when mode changes
-  */
-static void Display_Mode_Indication(Task1_Mode_t mode)
-{
-  /* Turn off all LEDs briefly */
-  HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_RESET);
-  HAL_Delay(100);
-
-  /* Flash the number of LEDs equal to (mode + 1) */
-  uint8_t pattern = 0;
-  for (uint8_t i = 0; i <= (uint8_t)mode && i < 8; i++)
-  {
-    pattern |= (uint8_t)(1U << i);
-  }
-  for (uint8_t i = 0; i < 8; i++)
-  {
-    GPIO_PinState s = (pattern & (1U << i)) ? GPIO_PIN_SET : GPIO_PIN_RESET;
-    HAL_GPIO_WritePin(LED_PORT, (uint16_t)(1U << i), s);
-  }
-  HAL_Delay(200);
-  HAL_GPIO_WritePin(LED_PORT, LED_ALL_PINS, GPIO_PIN_RESET);
-  HAL_Delay(100);
-
-  /* Reset state machine variables */
-  Task1_SnakeEffect_Reset();
-}
-
-/**
-  * @brief  Button input polling and debouncing handler (Supports both 1-button and 2-button setups)
+  * @brief  Button input polling and debouncing handler (fallback if EXTI disabled)
   */
 static void Handle_Button_Inputs(void)
 {
   uint32_t now = HAL_GetTick();
 
-  /* 1. Read Switch 1 (PB0 - Counter Button) via Register Level GPIOB->IDR */
+  /* 1. Read Switch 1 (PB0 - Counter Button) via GPIOB->IDR */
   uint8_t btn0 = (GPIOB->IDR & (1U << 0)) ? 1 : 0;
-
   if (btn0 != btn0LastState)
   {
     if ((now - lastBtn0PressTick) >= BUTTON_DEBOUNCE_MS)
     {
-      if (btn0 == 1) /* Rising edge */
+      if (btn0 == 1) /* Rising edge detected */
       {
-        lastBtn0PressTick = now;
+        g_btn0Event = 1;
       }
-      else /* Falling edge (Button released) */
-      {
-        uint32_t pressDuration = now - lastBtn0PressTick;
-
-        /* Long press (> 1000ms): switch display mode or cycle task mode */
-        if (pressDuration >= BUTTON_LONG_PRESS_MS)
-        {
-          /* Cycle mode for single-button users */
-          Task1_Mode_t nextMode = (Task1_Mode_t)((currentMode + 1) % MODE_COUNT_MAX);
-          Task1_SetMode(nextMode);
-        }
-        else /* Short press: Increment counter */
-        {
-          Task1_Counter_Increment();
-          if (currentMode == MODE_COUNTER_REG)
-          {
-            Task1_Counter_Display_Register(counterValue, counterStyle);
-          }
-          else
-          {
-            Task1_Counter_Display_HAL(counterValue, counterStyle);
-          }
-        }
-      }
+      lastBtn0PressTick = now;
       btn0LastState = btn0;
     }
   }
 
-  /* 2. Read Switch 2 (PB1 - Dedicated Mode Selector Button) */
+  /* 2. Read Switch 2 (PB1 - Mode Selector Button) via GPIOB->IDR */
   uint8_t btn1 = (GPIOB->IDR & (1U << 1)) ? 1 : 0;
-
   if (btn1 != btn1LastState)
   {
     if ((now - lastBtn1PressTick) >= BUTTON_DEBOUNCE_MS)
     {
-      if (btn1 == 1) /* Rising edge: Cycle to next task mode */
+      if (btn1 == 1) /* Rising edge detected */
       {
-        Task1_Mode_t nextMode = (Task1_Mode_t)((currentMode + 1) % MODE_COUNT_MAX);
-        Task1_SetMode(nextMode);
-        lastBtn1PressTick = now;
+        g_btn1Event = 1;
       }
+      lastBtn1PressTick = now;
       btn1LastState = btn1;
     }
   }
@@ -651,34 +637,26 @@ static void Handle_Button_Inputs(void)
 
 /**
   * @brief  EXTI Interrupt Callback (triggered on rising edge of PB0 or PB1)
+  *         Zero blocking delays inside ISR: sets flags for safe execution in main loop
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   uint32_t now = HAL_GetTick();
 
-  if (GPIO_Pin == SW_COUNTER_PIN) /* PB0: Counter Increment */
+  if (GPIO_Pin == SW_COUNTER_PIN) /* PB0: Counter Button */
   {
     if ((now - lastBtn0PressTick) >= BUTTON_DEBOUNCE_MS)
     {
       lastBtn0PressTick = now;
-      Task1_Counter_Increment();
-      if (currentMode == MODE_COUNTER_REG)
-      {
-        Task1_Counter_Display_Register(counterValue, counterStyle);
-      }
-      else
-      {
-        Task1_Counter_Display_HAL(counterValue, counterStyle);
-      }
+      g_btn0Event = 1;
     }
   }
-  else if (GPIO_Pin == SW_MODE_PIN) /* PB1: Mode Selection */
+  else if (GPIO_Pin == SW_MODE_PIN) /* PB1: Mode Selector Button */
   {
     if ((now - lastBtn1PressTick) >= BUTTON_DEBOUNCE_MS)
     {
       lastBtn1PressTick = now;
-      Task1_Mode_t nextMode = (Task1_Mode_t)((currentMode + 1) % MODE_COUNT_MAX);
-      Task1_SetMode(nextMode);
+      g_btn1Event = 1;
     }
   }
 }
@@ -691,65 +669,86 @@ void Task1_Run(void)
 {
   uint32_t now = HAL_GetTick();
 
-  /* Poll button states for debounced press/release handling */
+  /* Check button states */
   Handle_Button_Inputs();
 
+  /* 1. Handle Pending Mode Change Request (PB1 pressed) */
+  if (g_btn1Event)
+  {
+    g_btn1Event = 0;
+    Task1_Mode_t nextMode = (Task1_Mode_t)((currentMode + 1) % MODE_COUNT_MAX);
+    Task1_SetMode(nextMode);
+    return;
+  }
+
+  /* 2. Handle Pending Counter Button Press (PB0 pressed) */
+  if (g_btn0Event)
+  {
+    g_btn0Event = 0;
+
+    if (currentMode == MODE_CONTROLLED_COUNTER)
+    {
+      /* Deliverable 3: Increment counter from 0 to 8 (wraps to 0) */
+      Task1_Counter_Increment();
+      if (currentImpl == IMPL_REGISTER)
+      {
+        Task1_Counter_Display_Register(counterValue, counterStyle);
+      }
+      else
+      {
+        Task1_Counter_Display_HAL(counterValue, counterStyle);
+      }
+    }
+    else if (currentMode == MODE_SNAKE_EFFECT)
+    {
+      /* Toggle between Register-Level Direct GPIO and HAL Implementation */
+      currentImpl = (currentImpl == IMPL_REGISTER) ? IMPL_HAL : IMPL_REGISTER;
+    }
+    else if (currentMode == MODE_PWM_50HZ)
+    {
+      /* Step PWM duty cycle on PB0 press: 10% -> 25% -> 50% -> 75% -> 90% */
+      static uint8_t step = 2;
+      const float presets[5] = {10.0f, 25.0f, 50.0f, 75.0f, 90.0f};
+      step = (step + 1) % 5;
+      pwmDuty = presets[step];
+      Task1_PWM_50Hz_SetDuty(pwmDuty);
+    }
+  }
+
+  /* 3. Execute Mode State Machine */
   switch (currentMode)
   {
-    /* Mode 0: All-In-One Interactive Master Mode
-     *   - In background: Hardware 50Hz PWM runs on PB8.
-     *   - In foreground: Snake effect runs; pressing PB0 pauses or increments counter.
+    /* Mode 0: Deliverable 1 - Snake Effect (light 1-by-1, turn off 1-by-1) */
+    case MODE_SNAKE_EFFECT:
+    {
+      if ((now - lastSnakeTick) >= SNAKE_STEP_DELAY_MS)
+      {
+        lastSnakeTick = now;
+        if (currentImpl == IMPL_REGISTER)
+        {
+          Task1_SnakeEffect_Register_Step();
+        }
+        else
+        {
+          Task1_SnakeEffect_HAL_Step();
+        }
+      }
+      break;
+    }
+
+    /* Mode 1: Deliverable 3 - Controlled Counter (0 to 8 via PB0 Switch)
+     * LEDs maintain their state steadily and update instantly on each PB0 press!
      */
-    case MODE_ALL_IN_ONE:
+    case MODE_CONTROLLED_COUNTER:
     {
-      if ((now - lastSnakeTick) >= SNAKE_STEP_DELAY_MS)
-      {
-        lastSnakeTick = now;
-        Task1_SnakeEffect_Register_Step();
-      }
+      /* Steady state display */
       break;
     }
 
-    /* Mode 1: Deliverable 1 - Snake Effect (HAL API) */
-    case MODE_SNAKE_HAL:
+    /* Mode 2: Deliverable 2 - 50Hz PWM Signal Demo & LED Breathing */
+    case MODE_PWM_50HZ:
     {
-      if ((now - lastSnakeTick) >= SNAKE_STEP_DELAY_MS)
-      {
-        lastSnakeTick = now;
-        Task1_SnakeEffect_HAL_Step();
-      }
-      break;
-    }
-
-    /* Mode 2: Deliverable 1 - Snake Effect (Register-Level Direct GPIO) */
-    case MODE_SNAKE_REG:
-    {
-      if ((now - lastSnakeTick) >= SNAKE_STEP_DELAY_MS)
-      {
-        lastSnakeTick = now;
-        Task1_SnakeEffect_Register_Step();
-      }
-      break;
-    }
-
-    /* Mode 3: Deliverable 3 - Controlled Counter (0 to 8 via HAL) */
-    case MODE_COUNTER_HAL:
-    {
-      Task1_Counter_Display_HAL(counterValue, counterStyle);
-      break;
-    }
-
-    /* Mode 4: Deliverable 3 - Controlled Counter (0 to 8 via Register Level) */
-    case MODE_COUNTER_REG:
-    {
-      Task1_Counter_Display_Register(counterValue, counterStyle);
-      break;
-    }
-
-    /* Mode 5: Deliverable 2 - 50Hz PWM Signal Demo */
-    case MODE_PWM_50HZ_DEMO:
-    {
-      if ((now - lastPwmTick) >= 20) /* 20ms period = 50Hz */
+      if ((now - lastPwmTick) >= 20) /* 20ms refresh */
       {
         lastPwmTick = now;
         Task1_PWM_50Hz_Demo_Step();
@@ -758,7 +757,7 @@ void Task1_Run(void)
     }
 
     default:
-      currentMode = MODE_ALL_IN_ONE;
+      currentMode = MODE_SNAKE_EFFECT;
       break;
   }
 }
