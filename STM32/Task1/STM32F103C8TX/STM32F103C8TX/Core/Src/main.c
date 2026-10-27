@@ -20,6 +20,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -88,7 +89,6 @@ static int8_t pwmDirection = 1;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
 static void Handle_Button_Inputs(void);
 static void Display_Mode_Indication(Task1_Mode_t mode);
@@ -104,6 +104,7 @@ static void Display_Mode_Indication(Task1_Mode_t mode);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -166,88 +167,20 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-#if (SELECTED_CLOCK_CONFIG == CLOCK_CONFIG_HSE_72MHZ)
-  /* Check if HSE can start with a non-blocking counter timeout */
-  uint8_t hse_ready = 0;
-  RCC->CR |= RCC_CR_HSEON;
-  for (volatile uint32_t i = 0; i < 5000; i++)
-  {
-    if (RCC->CR & RCC_CR_HSERDY) { hse_ready = 1; break; }
-  }
-
-  if (hse_ready)
-  {
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9; /* 8 MHz * 9 = 72 MHz */
-  
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK)
-    {
-      RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                                  |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-      RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-      RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-      RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2; /* 36 MHz */
-      RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1; /* 72 MHz */
-
-      if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) == HAL_OK)
-      {
-        return;
-      }
-    }
-  }
-
-#elif (SELECTED_CLOCK_CONFIG == CLOCK_CONFIG_HSE_8MHZ)
-  /* Check if HSE can start with a non-blocking counter timeout */
-  uint8_t hse_ready = 0;
-  RCC->CR |= RCC_CR_HSEON;
-  for (volatile uint32_t i = 0; i < 5000; i++)
-  {
-    if (RCC->CR & RCC_CR_HSERDY) { hse_ready = 1; break; }
-  }
-
-  if (hse_ready)
-  {
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK)
-    {
-      RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                                  |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-      RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-      RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-      RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-      RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-      if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) == HAL_OK)
-      {
-        return;
-      }
-    }
-  }
-#endif
-
-  /**
-   * Primary / Fallback: Internal 8 MHz HSI Clock
-   * Guaranteed to work immediately in Proteus and on any STM32 board.
-   */
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.HSEState = RCC_HSE_OFF;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
   }
 
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
@@ -259,50 +192,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_AFIO_CLK_ENABLE();
-
-  /* Configure GPIO pin Output Level for LEDs (PA0..PA7) */
-  HAL_GPIO_WritePin(GPIOA, LED_ALL_PINS, GPIO_PIN_RESET);
-
-  /* Configure GPIO pins : PA0..PA7 as 8 LED Outputs */
-  GPIO_InitStruct.Pin = LED_ALL_PINS;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* Configure GPIO pin : PB0 (Counter Increment Switch with Pull-Down) */
-  GPIO_InitStruct.Pin = SW_COUNTER_PIN;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(SW_COUNTER_PORT, &GPIO_InitStruct);
-
-  /* Configure GPIO pin : PB1 (Mode Selection Switch with Pull-Down) */
-  GPIO_InitStruct.Pin = SW_MODE_PIN;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(SW_MODE_PORT, &GPIO_InitStruct);
-
-  /* EXTI interrupt configuration for Button 1 (PB0) and Button 2 (PB1) */
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 2, 0);
-  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI1_IRQn, 2, 0);
-  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -890,8 +779,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
