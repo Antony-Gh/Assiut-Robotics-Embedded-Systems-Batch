@@ -9,6 +9,15 @@
 #include "LCD_priv.h"
 #define _delay_ms(x) HAL_Delay(x)
 
+static void LCD_DelayUs(uint32_t us)
+{
+    volatile uint32_t count = us * 8;
+    while (count--)
+    {
+        __NOP();
+    }
+}
+
 static void LCD_SetDataPinsMode(LCD_8 l, uint32_t mode)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -99,15 +108,15 @@ void vidLCDWriteReg(LCD_8 l, uint16_t reg)
     HAL_GPIO_WritePin(l.DB0.port, l.DB0.pin, (GPIO_PinState)GET_BIT(reg, 0));
 
     HAL_GPIO_WritePin(l.EN.port, l.EN.pin, GPIO_PIN_SET);
-    _delay_ms(1);
+    LCD_DelayUs(10);
     HAL_GPIO_WritePin(l.EN.port, l.EN.pin, GPIO_PIN_RESET);
-    _delay_ms(1);
+    LCD_DelayUs(50);
 }
 
 void vidLCDScreenClr(LCD_8 l)
 {
     vidLCDWriteReg(l, 1);
-    _delay_ms(10);
+    _delay_ms(2);
 }
 
 uint8_t u8LCDReadAdd(LCD_8 l)
@@ -139,12 +148,14 @@ uint8_t u8LCDReadAdd(LCD_8 l)
 
 void vidLCDSetCursor(LCD_8 l, RN r, CN c)
 {
-	uint16_t regValue = 1 << 7;
+	uint16_t regValue = (1 << 7);
     if (r)
-        SET_BIT(regValue, 6);
-    regValue |= c;
+    {
+        regValue |= (1 << 6); /* 0x40: Set DDRAM address to row 2 */
+    }
+    regValue |= (uint16_t)c;
     vidLCDWriteReg(l, regValue);
-    _delay_ms(1);
+    LCD_DelayUs(50);
 }
 
 void vidLCDWriteChar(LCD_8 l, uint8_t c)
@@ -157,7 +168,7 @@ void vidLCDWriteChar(LCD_8 l, uint8_t c)
             vidLCDSetCursor(l, R1, C1);
         else            
             vidLCDSetCursor(l, R2, C1);
-        _delay_ms(1);
+        LCD_DelayUs(50);
         return;
     }
     else if (c == '\t')
@@ -170,7 +181,7 @@ void vidLCDWriteChar(LCD_8 l, uint8_t c)
     }
     regValue |= c;
     vidLCDWriteReg(l, regValue);
-    _delay_ms(1);
+    LCD_DelayUs(50);
 }
 
 void vidLCDWriteStr(LCD_8 l, uint8_t* cptr)

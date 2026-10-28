@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +44,13 @@ ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
 /* USER CODE BEGIN PV */
+#define DISPLAY_RESISTANCE 1  /* 1 = display resistance (Ohms/K/M), 0 = display raw ADC (0-4095) */
 
+/* DMA circular buffer for 4 ADC channels - must be volatile and in static/global RAM */
+volatile uint16_t adc_data[4] = {0};
+
+/* Nominal maximum resistance for potentiometers: P1=1K, P2=10K, P3=100K, P4=1M */
+static const float POT_NOMINAL_OHMS[4] = {1000.0f, 10000.0f, 100000.0f, 1000000.0f};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,7 +64,60 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/**
+  * @brief  Formats ADC measurement into a resistance string strictly <= 4 chars
+  * @param  adc_val: Raw 12-bit ADC value (0-4095)
+  * @param  r_max: Nominal potentiometer maximum resistance in Ohms
+  * @param  out_str: Output character buffer (minimum 5 bytes for 4 chars + null terminator)
+  */
+static void Format_Resistance(uint16_t adc_val, float r_max, char *out_str)
+{
+  char temp[16];
+  uint32_t raw_adc = (uint32_t)(adc_val & 0x0FFFU);
+  uint32_t r = (uint32_t)(((uint64_t)raw_adc * (uint64_t)(r_max + 0.5f) + 2047ULL) / 4095ULL);
 
+  if (r == 0U)
+  {
+    snprintf(temp, sizeof(temp), "0");
+  }
+  else if (r_max <= 1000.0f && r <= 1000U)
+  {
+    snprintf(temp, sizeof(temp), "%lu", (unsigned long)r);
+  }
+  else if (r < 1000U)
+  {
+    snprintf(temp, sizeof(temp), "%lu", (unsigned long)r);
+  }
+  else if (r < 9950U)
+  {
+    uint32_t val_x10 = (r + 50U) / 100U;
+    if (val_x10 >= 100U)
+    {
+      snprintf(temp, sizeof(temp), "10K");
+    }
+    else
+    {
+      uint32_t whole = val_x10 / 10U;
+      uint32_t frac = val_x10 % 10U;
+      snprintf(temp, sizeof(temp), "%lu.%luK", (unsigned long)whole, (unsigned long)frac);
+    }
+  }
+  else if (r < 999500U)
+  {
+    uint32_t k_val = (r + 500U) / 1000U;
+    snprintf(temp, sizeof(temp), "%luK", (unsigned long)k_val);
+  }
+  else
+  {
+    uint32_t val_x10 = (r + 50000U) / 100000U;
+    uint32_t whole = val_x10 / 10U;
+    uint32_t frac = val_x10 % 10U;
+    snprintf(temp, sizeof(temp), "%lu.%luM", (unsigned long)whole, (unsigned long)frac);
+  }
+
+  strncpy(out_str, temp, 4);
+  out_str[4] = '\0';
+}
 /* USER CODE END 0 */
 
 /**
@@ -111,35 +170,63 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_NVIC_DisableIRQ(DMA1_Channel1_IRQn);
+  /* Display initial welcome screen */
   vidLCDScreenClr(l);
   vidLCDSetCursor(l, R1, C1);
-  uint8_t str[32] = "start";
-  vidLCDWriteStr(l, str);
+  vidLCDWriteStr(l, (uint8_t *)"Assiut Robotics");
+  vidLCDSetCursor(l, R2, C1);
+  vidLCDWriteStr(l, (uint8_t *)"Task 2: ADC+DMA");
+  HAL_Delay(1000);
 
-
-  uint16_t data[4] = {1,2,3,4};
+  /* Calibrate ADC */
   HAL_ADCEx_Calibration_Start(&hadc1);
-  HAL_Delay(100);
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)data, 4);
-  sprintf(str,"ADC works!");
+  HAL_Delay(50);
+
+  /* Start ADC Conversions with DMA in Circular Mode */
+  if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_data, 4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* Disable DMA Interrupt in NVIC to eliminate Proteus CPU load freeze (~4000 ISRs/sec).
+   * Circular DMA transfers data into adc_data in SRAM continuously in hardware. */
+  HAL_NVIC_DisableIRQ(DMA1_Channel1_IRQn);
+
   vidLCDScreenClr(l);
-  vidLCDSetCursor(l, R1, C1);
-  vidLCDWriteStr(l, str);
+
+  char p1_str[8], p2_str[8], p3_str[8], p4_str[8];
+  char line1[32];
+  char line2[32];
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  sprintf(str, "P1:%d, P2:%d",data[0],data[1]);
-	  vidLCDScreenClr(l);
-	  vidLCDSetCursor(l, R1, C1);
-	  vidLCDWriteStr(l, str);
-	  sprintf(str, "P3:%d, P4:%d", data[2],data[3]);
-	  vidLCDSetCursor(l, R2, C1);
-	  vidLCDWriteStr(l, str);
-	  HAL_Delay(100);
+#if DISPLAY_RESISTANCE
+    /* Convert raw ADC values to formatted resistance strings (max 4 chars each) */
+    Format_Resistance(adc_data[0], POT_NOMINAL_OHMS[0], p1_str);
+    Format_Resistance(adc_data[1], POT_NOMINAL_OHMS[1], p2_str);
+    Format_Resistance(adc_data[2], POT_NOMINAL_OHMS[2], p3_str);
+    Format_Resistance(adc_data[3], POT_NOMINAL_OHMS[3], p4_str);
+
+    /* Exactly 16 characters per line: "P1:xxxx  P2:xxxx" */
+    snprintf(line1, sizeof(line1), "P1:%-4s  P2:%-4s", p1_str, p2_str);
+    snprintf(line2, sizeof(line2), "P3:%-4s  P4:%-4s", p3_str, p4_str);
+#else
+    /* Raw ADC values (0-4095) formatted to 4 chars */
+    snprintf(line1, sizeof(line1), "P1:%-4u  P2:%-4u", adc_data[0], adc_data[1]);
+    snprintf(line2, sizeof(line2), "P3:%-4u  P4:%-4u", adc_data[2], adc_data[3]);
+#endif
+
+    /* Overwrite LCD lines directly without clearing (eliminates screen flicker) */
+    vidLCDSetCursor(l, R1, C1);
+    vidLCDWriteStr(l, (uint8_t *)line1);
+
+    vidLCDSetCursor(l, R2, C1);
+    vidLCDWriteStr(l, (uint8_t *)line2);
+
+    HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

@@ -21,6 +21,7 @@
 #include "gpio.h"
 #include "lcd.h"
 #include <stdio.h>
+#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -92,6 +93,8 @@ static void MX_ADC1_Init(void);
 /**
   * @brief  Converts a 12-bit ADC reading (0..4095) into the actual potentiometer resistance,
   *         formatted as an engineering-unit string strictly truncated to at most 4 characters.
+  * @note   Uses purely integer formatting to ensure full compatibility with ARM newlib-nano
+  *         (--specs=nano.specs) without relying on floating point printf support.
   * @param  adc_val: Raw 12-bit ADC conversion value (0..4095)
   * @param  r_max: Nominal maximum resistance in Ohms (e.g. 1000, 10000, 100000, 1000000)
   * @param  out_str: Output character buffer (minimum 5 bytes for 4 chars + null terminator)
@@ -99,48 +102,58 @@ static void MX_ADC1_Init(void);
   */
 static void Format_Resistance(uint16_t adc_val, float r_max, char *out_str)
 {
-  float r = ((float)(adc_val & 0x0FFFU) / 4095.0f) * r_max;
+  char temp[16];
+  uint32_t raw_adc = (uint32_t)(adc_val & 0x0FFFU);
+  /* Calculate resistance rounded to nearest integer Ohm */
+  uint32_t r = (uint32_t)(((uint64_t)raw_adc * (uint64_t)(r_max + 0.5f) + 2047ULL) / 4095ULL);
 
-  if (r < 0.5f)
+  if (r == 0U)
   {
-    /* Minimum / Zero position */
-    snprintf(out_str, 5, "0");
+    /* Zero position */
+    snprintf(temp, sizeof(temp), "0");
   }
-  else if (r_max <= 1000.0f && r <= 1000.5f)
+  else if (r_max <= 1000.0f && r <= 1000U)
   {
-    /* 1k Potentiometer: 0 to 1000 Ohms fit directly in 1 to 4 digits (e.g. "520", "1000") */
-    snprintf(out_str, 5, "%u", (unsigned int)(r + 0.5f));
+    /* 1k Potentiometer: 0 to 1000 Ohms (e.g. "520", "1000") */
+    snprintf(temp, sizeof(temp), "%lu", (unsigned long)r);
   }
-  else if (r < 995.0f)
+  else if (r < 1000U)
   {
-    /* Under 1k Ohms on larger pots: display integer ohms */
-    snprintf(out_str, 5, "%u", (unsigned int)(r + 0.5f));
+    /* Values under 1k on larger pots: display integer ohms */
+    snprintf(temp, sizeof(temp), "%lu", (unsigned long)r);
   }
-  else if (r < 9950.0f)
+  else if (r < 9950U)
   {
-    /* 1k to 9.9k: 1 decimal place with 'K' suffix (e.g. "1.0K", "5.2K", "9.9K") */
-    float k_val = r / 1000.0f;
-    if (k_val >= 9.95f)
+    /* 1k to 9.9k: whole.frac with 'K' suffix (e.g. "1.0K", "5.2K", "9.9K") */
+    uint32_t val_x10 = (r + 50U) / 100U;
+    if (val_x10 >= 100U)
     {
-      snprintf(out_str, 5, "%uK", (unsigned int)(k_val + 0.5f));
+      snprintf(temp, sizeof(temp), "10K");
     }
     else
     {
-      snprintf(out_str, 5, "%.1fK", (double)k_val);
+      uint32_t whole = val_x10 / 10U;
+      uint32_t frac = val_x10 % 10U;
+      snprintf(temp, sizeof(temp), "%lu.%luK", (unsigned long)whole, (unsigned long)frac);
     }
   }
-  else if (r < 999500.0f)
+  else if (r < 999500U)
   {
     /* 10k to 999k: integer k with 'K' suffix (e.g. "10K", "52K", "100K", "520K") */
-    snprintf(out_str, 5, "%uK", (unsigned int)((r / 1000.0f) + 0.5f));
+    uint32_t k_val = (r + 500U) / 1000U;
+    snprintf(temp, sizeof(temp), "%luK", (unsigned long)k_val);
   }
   else
   {
-    /* 1M and above: 1 decimal place with 'M' suffix (e.g. "1.0M") */
-    snprintf(out_str, 5, "%.1fM", (double)(r / 1000000.0f));
+    /* 1M and above: whole.frac with 'M' suffix (e.g. "1.0M") */
+    uint32_t val_x10 = (r + 50000U) / 100000U;
+    uint32_t whole = val_x10 / 10U;
+    uint32_t frac = val_x10 % 10U;
+    snprintf(temp, sizeof(temp), "%lu.%luM", (unsigned long)whole, (unsigned long)frac);
   }
 
-  /* Explicitly enforce truncation if string exceeds 4 characters */
+  /* Copy at most 4 characters and enforce null termination */
+  strncpy(out_str, temp, 4);
   out_str[4] = '\0';
 }
 /* USER CODE END 0 */
