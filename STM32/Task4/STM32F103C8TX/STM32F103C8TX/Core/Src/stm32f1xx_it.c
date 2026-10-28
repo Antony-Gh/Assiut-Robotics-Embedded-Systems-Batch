@@ -198,6 +198,64 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f1xx.s).                    */
 /******************************************************************************/
 
-/* USER CODE BEGIN 1 */
+/**
+  * @brief This function handles EXTI line0 interrupt.
+  */
+void EXTI0_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI0_IRQn 0 */
 
+  /* USER CODE END EXTI0_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+  /* USER CODE BEGIN EXTI0_IRQn 1 */
+
+  /* USER CODE END EXTI0_IRQn 1 */
+}
+
+/**
+  * @brief This function handles EXTI line1 interrupt.
+  */
+void EXTI1_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI1_IRQn 0 */
+
+  /* USER CODE END EXTI1_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
+  /* USER CODE BEGIN EXTI1_IRQn 1 */
+
+  /* USER CODE END EXTI1_IRQn 1 */
+}
+
+/* USER CODE BEGIN 1 */
+#include "waveform.h"
+#include "periodic_task.h"
+#include "ultrasonic.h"
+
+/**
+  * @brief This function handles TIM2 global interrupt (Periodic Pulse Waveform Generator).
+  */
+void TIM2_IRQHandler(void)
+{
+    Waveform_TIM2_ISR();
+}
+
+/**
+  * @brief This function handles TIM3 global interrupt (100ms Periodic Task: Ultrasonic + LCD).
+  */
+void TIM3_IRQHandler(void)
+{
+    PeriodicTask_TIM3_ISR();
+}
+
+/**
+  * @brief This function handles EXTI line4 interrupt (Ultrasonic Echo pin).
+  */
+void EXTI4_IRQHandler(void)
+{
+    if (__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_4) != RESET)
+    {
+        __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_4);
+        Ultrasonic_Echo_ISR(&g_ultrasonic, GPIO_PIN_4);
+    }
+}
 /* USER CODE END 1 */
