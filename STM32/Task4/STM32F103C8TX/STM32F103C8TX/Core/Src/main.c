@@ -2,12 +2,14 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Comprehensive Solution for Task 3 (Assiut Robotics Team)
+  * @brief          : Comprehensive Solution for Task 4 (Assiut Robotics Team)
   *                   All deliverables fully implemented:
-  *                     1. Ultrasonic Distance Measurement displayed on 16x2 LCD
-  *                     2. Precise Custom Periodic Waveform (60 us period) on Oscilloscope
-  *                     3. Strict Super-Loop Constraint: while(1) is completely empty!
-  *                        All operations are driven by Hardware Timers & EXTI Interrupts.
+  *                     1. Task 1: I2C Communication with MPU-6050 6-DOF IMU
+  *                        (Acquires Roll, Pitch, Yaw via Complementary Filter)
+  *                     2. Task 2: I2C Communication with BMP280 / BMP180
+  *                        (Acquires Ambient Temperature & Barometric Pressure)
+  *                     3. Serial Output: Continuous Real-Time Telemetry to
+  *                        Proteus Virtual Terminal via USART1 (9600 baud, 8-N-1).
   *                     4. Modular Architecture & Full Doxygen Documentation.
   ******************************************************************************
   * @attention
@@ -25,10 +27,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "lcd.h"
-#include "ultrasonic.h"
-#include "waveform.h"
-#include "periodic_task.h"
+#include "mpu6050.h"
+#include "bmp280.h"
+#include "uart_comm.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,23 +46,21 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 /**
- * @brief Global Ultrasonic sensor instance configured for Trig = PA3, Echo = PA4.
+ * @brief Global sensor device handles
  */
-Ultrasonic_t g_ultrasonic = {
-    .trig = { .port = GPIOA, .pin = GPIO_PIN_3 },
-    .echo = { .port = GPIOA, .pin = GPIO_PIN_4 },
-    .distance = 0,
-    .echo_start = 0,
-    .echo_width = 0,
-    .new_data_ready = 0
-};
+MPU6050_t g_mpu;
+BMP_t     g_bmp;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+static void MX_I2C1_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -85,19 +85,55 @@ int main(void)
   /* Initialize all configured GPIO pins */
   MX_GPIO_Init();
 
+  /* Initialize I2C1 peripheral (PB6: SCL, PB7: SDA, 100 kHz Standard Mode) */
+  MX_I2C1_Init();
+
+  /* Initialize USART1 peripheral (PA9: TX, PA10: RX, 9600 Baud, 8-N-1) */
+  MX_USART1_UART_Init();
+
   /* USER CODE BEGIN 2 */
 
-  /* 1. Initialize 16x2 Character LCD in 8-bit mode (PA0..PA2 ctrl, PB0..PB7 data) */
-  LCD_Init();
+  /* 1. Initialize UART Telemetry Subsystem */
+  UART_Comm_Init(&huart1);
+  HAL_Delay(100);
 
-  /* 2. Initialize HC-SR04 Ultrasonic Sensor (Trig: PA3, Echo: PA4, Timebase: TIM1) */
-  Ultrasonic_Init(&g_ultrasonic);
+  UART_Print("\r\n=======================================================\r\n");
+  UART_Print("   Assiut Robotics Team - Embedded Systems Batch\r\n");
+  UART_Print("   Task 4: I2C (MPU6050 + BMP280) & UART Telemetry\r\n");
+  UART_Print("=======================================================\r\n");
+  UART_Print("[SYS] Initializing I2C Sensors on Bus (PB6/PB7)...\r\n");
 
-  /* 3. Initialize Oscilloscope Periodic Pulse Waveform Generator on PA5 / PB8 (TIM2) */
-  Waveform_Init();
+  /* 2. Initialize MPU6050 (Task 1 Deliverable: Roll, Pitch, Yaw) */
+  HAL_StatusTypeDef mpu_status = MPU6050_Init(&g_mpu, &hi2c1, 0x68);
+  if (mpu_status == HAL_OK)
+  {
+      UART_Print("[OK]  MPU6050 Motion Sensor (GY-521) detected & initialized.\r\n");
+  }
+  else
+  {
+      UART_Print("[WARN] MPU6050 not acknowledging on 0x68. Ready for live input.\r\n");
+  }
 
-  /* 4. Initialize 100 ms Periodic Task Engine (TIM3) for Sensor Trigger and LCD Refresh */
-  PeriodicTask_Init();
+  /* 3. Initialize BMP280 / BMP180 (Task 2 Deliverable: Pressure & Temperature) */
+  HAL_StatusTypeDef bmp_status = BMP_Init(&g_bmp, &hi2c1);
+  if (bmp_status == HAL_OK)
+  {
+      if (g_bmp.sensor_type == BMP_TYPE_BMP180)
+      {
+          UART_Print("[OK]  BMP180 Barometric Pressure Sensor initialized.\r\n");
+      }
+      else
+      {
+          UART_Print("[OK]  BMP280 Barometric Pressure Sensor initialized.\r\n");
+      }
+  }
+  else
+  {
+      UART_Print("[WARN] BMP sensor initialized with fallback standard pressure.\r\n");
+  }
+
+  UART_Print("[SYS] Streaming real-time telemetry to Virtual Terminal...\r\n");
+  HAL_Delay(500);
 
   /* USER CODE END 2 */
 
@@ -108,15 +144,21 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    /*
-     * STRICT TASK 3 REQUIREMENT:
-     * "Perform the Prev task without writing any line inside the super Loop."
-     *
-     * The super-loop is kept completely empty!
-     * 1. Waveform Generation: Driven by TIM2 Update Interrupt State Machine (10us/20us/10us/5us/15us).
-     * 2. Echo Measurement: Driven by EXTI4 Rising/Falling Interrupts & TIM1 microsecond counter.
-     * 3. Periodic Measurement & LCD Updates: Driven by TIM3 100ms Periodic Interrupt.
-     */
+
+    /* 1. Read MPU-6050 data and update orientation angles (Roll, Pitch, Yaw) */
+    MPU6050_Read(&g_mpu);
+
+    /* 2. Read BMP barometric pressure and temperature */
+    BMP_Read(&g_bmp);
+
+    /* 3. Transmit formatted telemetry block to Virtual Terminal via UART */
+    UART_SendTelemetry(&g_mpu, &g_bmp);
+
+    /* 4. Toggle Heartbeat LED (PC13) */
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+
+    /* 5. Telemetry update rate (~4 Hz = 250 ms period) */
+    HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }
@@ -157,6 +199,55 @@ void SystemClock_Config(void)
   }
 }
 
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+  /* USER CODE BEGIN I2C1_Init 0 */
+  /* USER CODE END I2C1_Init 0 */
+
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+  /* USER CODE BEGIN USART1_Init 0 */
+  /* USER CODE END USART1_Init 0 */
+
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
 /* USER CODE BEGIN 4 */
 /* USER CODE END 4 */
 
@@ -175,16 +266,7 @@ void Error_Handler(void)
 }
 
 #ifdef  USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
-  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
