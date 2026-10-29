@@ -1,4 +1,5 @@
 # Assiut Robotics Team - Embedded Systems Batch
+
 ## Task 4: I2C Communication (MPU-6050 & BMP280/BMP180) and UART Telemetry
 
 ---
@@ -29,26 +30,116 @@ This project implements a complete, industrial-grade embedded sensor integration
 
 ---
 
-## 2. Hardware & Simulation Architecture
+## 2. Hardware Pin Mapping & Wiring Architecture
 
-### Pin Mapping
+### 2.1 Complete Pinout Table
 
-| STM32 Pin | Peripheral Function | Connected Module / Component | Description |
+| STM32 Pin | LQFP48 Pin # | Peripheral Signal | Mode / Type | Connected Device & Pin | Description & Electrical Notes |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| **PB6** | 42 | `I2C1_SCL` | Alternate Function Open-Drain | MPU-6050 `SCL` / BMP280 `SCL` | I2C Serial Clock (100 kHz Standard Mode). Requires 4.7 kΩ pull-up resistor to +3.3V. |
+| **PB7** | 43 | `I2C1_SDA` | Alternate Function Open-Drain | MPU-6050 `SDA` / BMP280 `SDA` | I2C Serial Data bidirectional line. Requires 4.7 kΩ pull-up resistor to +3.3V. |
+| **PA9** | 30 | `USART1_TX` | Alternate Function Push-Pull | Virtual Terminal `RXD` | UART Telemetry Output (9600 Baud, 8-N-1, No Parity). Connected to Terminal RX. |
+| **PA10** | 31 | `USART1_RX` | Input Floating / Pull-Up | Virtual Terminal `TXD` | UART Command / Debug Input. Connected to Terminal TX. |
+| **PC13** | 2 | `GPIO_Output` | Output Push-Pull | On-Board Blue Pill LED | System Status / Heartbeat indicator (toggles on every 4 Hz telemetry cycle). |
+| **+3.3V** | Header | `VDD` / Power | +3.3V DC Power Rail | `VCC` of all modules | Powers STM32, MPU-6050 (GY-521), and BMP280 sensor breakout boards. |
+| **GND** | Header | `VSS` / Ground | 0V Ground Rail | `GND` of all modules | Common ground reference across MCU, sensors, and Virtual Terminal. |
+
+---
+
+### 2.2 Blue Pill Board Pinout Diagram
+
+```text
+                       STM32F103C8T6 ("Blue Pill")
+                       +-------------------------+
+                       | [USB]             [LED] |--> PC13 (Heartbeat LED)
+                       |                         |
+                       |                   [GND] |---> Common Ground
+                       |                  [3.3V] |---> +3.3V VCC
+                       |                         |
+                       | PA0                 PB7 |---> I2C1_SDA (MPU-6050 & BMP280)
+                       | PA1                 PB6 |---> I2C1_SCL (MPU-6050 & BMP280)
+                       | PA2                 PB5 |
+                       | PA3                 PB4 |
+                       | PA4                 PB3 |
+                       | PA5                 PA15|
+                       | PA6                 PA12|
+                       | PA7                 PA11|
+                       | PB0                 PA10|<--- USART1_RX (Virtual Terminal TXD)
+                       | PB1                  PA9|---> USART1_TX (Virtual Terminal RXD)
+                       | PB10                 PA8|
+                       | PB11                PB15|
+                       | PB12                PB14|
+                       +-------------------------+
+```
+
+---
+
+### 2.3 Sensor-to-MCU Interconnection Details
+
+#### 1. MPU-6050 6-DOF IMU (GY-521 Module)
+
+| Module Pin | STM32 Connection | Function / State | Notes |
 | :--- | :--- | :--- | :--- |
-| **PB6** | `I2C1_SCL` | MPU-6050 SCL / BMP280 SCL | I2C Clock (Open-drain with pull-ups) |
-| **PB7** | `I2C1_SDA` | MPU-6050 SDA / BMP280 SDA | I2C Data (Open-drain with pull-ups) |
-| **PA9** | `USART1_TX` | Proteus Virtual Terminal RXD | Telemetry output (9600 Baud) |
-| **PA10** | `USART1_RX` | Proteus Virtual Terminal TXD | Telemetry command input (optional) |
-| **PC13** | GPIO Output | BluePill On-board LED | Heartbeat LED (toggles on every update) |
+| **VCC** | `+3.3V` / `+5V` | Power Input | GY-521 board contains an on-board 3.3V low-dropout regulator. |
+| **GND** | `GND` | Ground Reference | Common ground. |
+| **SCL** | `PB6` (`I2C1_SCL`) | I2C Serial Clock | Driven by STM32 I2C1 peripheral at 100 kHz. |
+| **SDA** | `PB7` (`I2C1_SDA`) | I2C Serial Data | Bidirectional data exchange. |
+| **XDA** | *Unconnected* | Auxiliary I2C Data | Used only when MPU-6050 acts as master to external compass. |
+| **XCL** | *Unconnected* | Auxiliary I2C Clock | Used only when MPU-6050 acts as master to external compass. |
+| **AD0** | `GND` | I2C Address Select | Pulled LOW to select primary 7-bit I2C address `0x68` (Write: `0xD0`, Read: `0xD1`). |
+| **INT** | *Unconnected* / GPIO | Data Ready Interrupt | Optional; driver reads via periodic 4 Hz polling. |
 
-### I2C Bus Addressing (Shared Bus)
+#### 2. BMP280 Barometric Pressure & Temperature Sensor
 
-Both sensors reside peacefully on the same two I2C lines (`PB6` and `PB7`):
+| Module Pin | STM32 Connection | Function / State | Notes |
+| :--- | :--- | :--- | :--- |
+| **VCC** | `+3.3V` | Power Input | Operating voltage: 1.71V to 3.6V (typically 3.3V). |
+| **GND** | `GND` | Ground Reference | Common ground. |
+| **SCL** | `PB6` (`I2C1_SCL`) | I2C Serial Clock | Connected to the shared I2C bus. |
+| **SDA** | `PB7` (`I2C1_SDA`) | I2C Serial Data | Connected to the shared I2C bus. |
+| **CSB** | `+3.3V` (VCC) | Chip Select (I2C/SPI) | Tied HIGH to enable I2C mode (disables SPI interface). |
+| **SDO / ADDR** | `GND` | I2C Address Select | Pulled LOW for 7-bit address `0x76` (Write: `0xEC`, Read: `0xED`). |
+
+#### 3. Proteus Virtual Terminal
+
+| Terminal Pin | STM32 Pin | Function | Serial Settings |
+| :--- | :--- | :--- | :--- |
+| **RXD** (Input) | `PA9` (`USART1_TX`) | Serial Data Input to Terminal | 9600 Baud, 8 Data Bits, 1 Stop Bit, No Parity |
+| **TXD** (Output) | `PA10` (`USART1_RX`) | Optional Command Input | 9600 Baud, 8 Data Bits, 1 Stop Bit, No Parity |
+| **GND** | `GND` | Reference Ground | Common ground |
+
+---
+
+### 2.4 Shared I2C Bus Topology & Addressing
+
+Both sensors reside on the same physical two-wire bus without conflicts thanks to unique 7-bit slave addresses:
+
+```text
+                  +3.3V
+                    |
+                 [4.7k] [4.7k]  (Pull-up Resistors)
+                    |      |
+ STM32F103C8T6      |      |
++-------------+     |      |
+|             |     |      |
+|    PB6 (SCL)|-----+------+----------------------> [SCL] MPU-6050 (Addr: 0x68)
+|             |            |                 |
+|             |            |                 +----> [SCL] BMP280   (Addr: 0x76)
+|             |            |
+|    PB7 (SDA)|------------+----------------------> [SDA] MPU-6050 (Addr: 0x68)
+|             |                              |
+|             |                              +----> [SDA] BMP280   (Addr: 0x76)
+|             |
+|    PA9 (TX) |-----------------------------------> [RXD] Virtual Terminal (9600 Baud)
+|   PA10 (RX) |<----------------------------------- [TXD] Virtual Terminal
++-------------+
+```
+
 - **MPU-6050:** Default 7-bit address is `0x68` (Write: `0xD0`, Read: `0xD1`).
 - **BMP280:** Default 7-bit address is `0x76` (Write: `0xEC`, Read: `0xED`) or `0x77` (`0xEE`).
 - **BMP180:** Default 7-bit address is `0x77` (Write: `0xEE`, Read: `0xEF`).
 
-No address collisions occur, allowing multiple sensors to be read sequentially over the same peripheral bus.
+No address collisions occur, allowing multiple sensors to be queried sequentially over the single I2C peripheral.
 
 ---
 
@@ -60,42 +151,45 @@ The task specifically asks:
 Here is the comprehensive physical, mathematical, and control-theory analysis:
 
 ### 1. Pitch ($\theta$) and Roll ($\phi$)
-* **Physical Reference:**
+
+- **Physical Reference:**
   When the sensor is static or moving with steady velocity, Earth's gravity vector ($\vec{g} \approx 9.81\text{ m/s}^2$) points directly towards the center of the Earth. The 3-axis accelerometer measures the projection of this gravity vector across the sensor's X, Y, and Z axes:
   $$\text{Roll}_{\text{acc}} = \text{atan2}(a_y, a_z) \times \frac{180^\circ}{\pi}$$
   $$\text{Pitch}_{\text{acc}} = \text{atan2}(-a_x, \sqrt{a_y^2 + a_z^2}) \times \frac{180^\circ}{\pi}$$
-* **Accelerometer Characteristics:**
+- **Accelerometer Characteristics:**
   - **Advantage:** Gives an absolute, non-drifting static measurement of tilt relative to Earth's horizon.
   - **Disadvantage:** High sensitivity to dynamic forces (centrifugal forces, vibrations, sudden shocks, linear acceleration). High-frequency noise is significant.
-* **Gyroscope Characteristics:**
+- **Gyroscope Characteristics:**
   - **Advantage:** Measures instantaneous angular rate ($\omega_x, \omega_y$). Smooth, rapid, and immune to linear accelerations.
   - **Disadvantage:** Integrating angular velocity over time ($\theta(t) = \int \omega \, dt$) integrates any non-zero DC bias and sensor noise, resulting in unbounded **drift** over time.
-* **Sensor Fusion (Complementary Filter):**
+- **Sensor Fusion (Complementary Filter):**
   A complementary filter effectively splits the spectrum:
   $$\text{Angle}(t) = \alpha \cdot (\text{Angle}(t-\Delta t) + \omega \cdot \Delta t) + (1 - \alpha) \cdot \text{Angle}_{\text{acc}}$$
   With $\alpha = 0.98$, the gyroscope provides 98% of the high-frequency dynamic response, while the accelerometer supplies 2% low-frequency correction to eliminate drift. This yields responsive, drift-free Roll and Pitch.
 
 ### 2. Yaw ($\psi$, Heading)
-* **The Gravity Invariance Problem:**
+
+- **The Gravity Invariance Problem:**
   - Earth's gravity vector $\vec{g}$ acts purely along the local vertical axis (perpendicular to the horizontal plane).
   - When the sensor rotates horizontally around the Z-axis (Yaw), the gravitational projection on all three axes **does not change at all** ($a_x = 0$, $a_y = 0$, $a_z = 1\text{g}$).
   - Therefore, **an accelerometer cannot detect, measure, or correct horizontal Yaw rotation**.
-* **Consequence of Gyro Integration:**
+- **Consequence of Gyro Integration:**
   - Yaw can *only* be estimated with an MPU-6050 by integrating the Z-axis angular velocity:
     $$\text{Yaw}(t) = \text{Yaw}(t - \Delta t) + g_z \cdot \Delta t$$
   - Because there is no external absolute reference in the horizontal plane to bound the integration, the DC gyro bias causes **unavoidable drift over time** (several degrees per minute).
-* **Industrial Solution:**
+- **Industrial Solution:**
   - To achieve an absolute, drift-free Yaw angle, a 9-DOF IMU (such as MPU-9250 or external HMC5883L/QMC5883L) is needed. The 3-axis magnetometer detects the Earth's magnetic north vector ($B_x, B_y$), serving as a low-frequency reference for Yaw just as gravity does for Pitch and Roll.
 
 ### 3. Gimbal Lock & Singularities
-* In Euler angle representations (Roll-Pitch-Yaw), when Pitch reaches $\pm 90^\circ$ (pointing straight up or down), the Roll and Yaw axes align on the same physical line, causing a loss of one rotational degree of freedom (**Gimbal Lock**).
-* For full 3D aerobatic orientation, **quaternions** ($q_0, q_1, q_2, q_3$) are used in place of Euler angles to eliminate singularities.
+
+- In Euler angle representations (Roll-Pitch-Yaw), when Pitch reaches $\pm 90^\circ$ (pointing straight up or down), the Roll and Yaw axes align on the same physical line, causing a loss of one rotational degree of freedom (**Gimbal Lock**).
+- For full 3D aerobatic orientation, **quaternions** ($q_0, q_1, q_2, q_3$) are used in place of Euler angles to eliminate singularities.
 
 ---
 
 ## 4. Driver Architecture & Implementation
 
-```
+```text
 STM32F103C8TX/
 ├── Core/
 │   ├── Inc/
@@ -142,7 +236,7 @@ STM32F103C8TX/
 5. **Virtual Terminal Output:**
    - During simulation, the Virtual Terminal displays real-time telemetry streaming at 4 Hz:
 
-```
+```text
 ===========================================================
  [IMU] MPU-6050 Orientation (Complementary Filter, a=0.98):
        Roll  :   +12.45 deg
@@ -171,7 +265,8 @@ make all
 ```
 
 Output:
-```
+
+```text
 Finished building: ../Core/Src/bmp280.c
 Finished building: ../Core/Src/mpu6050.c
 Finished building: ../Core/Src/uart_comm.c
@@ -180,4 +275,5 @@ Finished building target: STM32F103C8TX.elf
 Finished building: STM32F103C8TX.hex
 Finished building: default.size.stdout
 ```
+
 Build result: **0 errors, 0 warnings**.
