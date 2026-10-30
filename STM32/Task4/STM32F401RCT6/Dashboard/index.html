@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AQUASYNC ROV Telemetry & Sensor Suite | STM32F401RCT6</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="glow-bg glow-1"></div>
+  <div class="glow-bg glow-2"></div>
+  <div class="water-grid"></div>
+
+  <div class="app-container">
+    <!-- TOP NAVIGATION BAR -->
+    <header class="top-nav">
+      <div class="brand-group">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+            <polygon points="12,2 15,9 22,12 15,15 12,22 9,15 2,12 9,9" fill="url(#brandGrad)"></polygon>
+            <defs>
+              <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00f2fe" />
+                <stop offset="100%" stop-color="#4facfe" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>AQUASYNC <span>NAV-CORE</span></h1>
+          <p class="subtitle">STM32F401RCT6 SUBSEA TELEMETRY SUITE</p>
+        </div>
+        <span class="mcu-badge">ARM Cortex-M4 84MHz</span>
+      </div>
+
+      <!-- CONNECTION & TELEMETRY CONTROLS -->
+      <div class="nav-controls">
+        <div class="sim-toggle-wrap">
+          <label class="switch">
+            <input type="checkbox" id="simToggle">
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-label">Demo Simulation</span>
+        </div>
+
+        <div class="baud-selector-wrap">
+          <label for="baudRate">Baud:</label>
+          <select id="baudRate" class="select-cyber">
+            <option value="115200" selected>115200</option>
+            <option value="921600">921600 (Ultra-Fast)</option>
+            <option value="57600">57600</option>
+            <option value="9600">9600</option>
+          </select>
+        </div>
+
+        <button id="connectBtn" class="btn-primary glow-btn">
+          <span class="btn-icon">⚡</span>
+          <span class="btn-text">Connect Serial</span>
+        </button>
+
+        <div class="status-indicator-pill" id="statusPill">
+          <span class="status-dot"></span>
+          <span id="statusText">DISCONNECTED</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- METRICS QUICK BAR -->
+    <div class="quick-bar">
+      <div class="metric-item">
+        <span class="m-label">DATA RATE</span>
+        <span class="m-val" id="metricHz">0.0 <small>Hz</small></span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="m-label">TOTAL PACKETS</span>
+        <span class="m-val" id="metricPackets">0</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="m-label">CURRENT DEPTH</span>
+        <span class="m-val highlight-cyan" id="metricDepth">0.00 <small>m</small></span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="m-label">HEADING</span>
+        <span class="m-val highlight-amber" id="metricHeading">000.0° <small>N</small></span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="m-label">WATER TEMP</span>
+        <span class="m-val" id="metricTemp">00.0 <small>°C</small></span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="m-label">UPTIME</span>
+        <span class="m-val" id="metricUptime">00:00:00</span>
+      </div>
+      <div class="quick-actions">
+        <button id="recordBtn" class="btn-mini">
+          <span class="record-dot"></span> Record Session
+        </button>
+        <button id="tareBtn" class="btn-mini">Tare Surface</button>
+      </div>
+    </div>
+
+    <!-- MAIN DASHBOARD GRID -->
+    <main class="dashboard-grid">
+      <!-- 1. ARTIFICIAL HORIZON / 3D ATTITUDE GIMBAL -->
+      <section class="card widget-attitude">
+        <div class="card-header">
+          <div class="title-wrap">
+            <span class="header-icon">🧭</span>
+            <h2>ATTITUDE & ARTIFICIAL HORIZON</h2>
+          </div>
+          <span class="source-tag">GY-521 + GY-87 Complementary</span>
+        </div>
+        <div class="card-body attitude-body">
+          <div class="horizon-wrapper">
+            <canvas id="horizonCanvas" width="340" height="340"></canvas>
+            <div class="horizon-crosshair"></div>
+          </div>
+          <div class="attitude-readouts">
+            <div class="readout-box">
+              <span class="r-label">PITCH</span>
+              <span class="r-val" id="pitchVal">+0.0°</span>
+            </div>
+            <div class="readout-box">
+              <span class="r-label">ROLL</span>
+              <span class="r-val" id="rollVal">+0.0°</span>
+            </div>
+            <div class="readout-box">
+              <span class="r-label">YAW / HDG</span>
+              <span class="r-val" id="yawVal">000.0°</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. SUBSEA DEPTH & PRESSURE COLUMN (MS5540C) -->
+      <section class="card widget-depth">
+        <div class="card-header">
+          <div class="title-wrap">
+            <span class="header-icon">🌊</span>
+            <h2>SUBSEA DEPTH & PRESSURE</h2>
+          </div>
+          <span class="source-tag tag-ms">MS5540C (0.1 mbar)</span>
+        </div>
+        <div class="card-body depth-body">
+          <div class="depth-column-wrap">
+            <div class="depth-ruler" id="depthRuler"></div>
+            <div class="depth-column">
+              <div class="water-fill" id="waterFill">
+                <div class="water-surface-line"></div>
+              </div>
+              <div class="rov-depth-marker" id="rovDepthMarker">
+                <span class="marker-tag" id="markerDepthTag">0.0m</span>
+              </div>
+            </div>
+          </div>
+          <div class="depth-stats">
+            <div class="stat-card">
+              <span class="stat-title">WATER DEPTH</span>
+              <div class="stat-huge highlight-cyan"><span id="depthNumber">0.00</span> <small>m</small></div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">HYDROSTATIC PRESSURE</span>
+              <div class="stat-mid"><span id="pressureNumber">1013.2</span> <small>mbar</small></div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">ASCENT / DESCENT RATE</span>
+              <div class="stat-mid" id="climbRateNumber">0.00 <small>m/s</small></div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">MAX DIVE DEPTH</span>
+              <div class="stat-mid highlight-amber"><span id="maxDepthNumber">0.00</span> <small>m</small></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. COMPASS & MAGNETOMETER (HMC5883L / QMC5883L) -->
+      <section class="card widget-compass">
+        <div class="card-header">
+          <div class="title-wrap">
+            <span class="header-icon">🧭</span>
+            <h2>MAGNETOMETER & COMPASS</h2>
+          </div>
+          <span class="source-tag" id="magChipTag">HMC5883L / QMC</span>
+        </div>
+        <div class="card-body compass-body">
+          <div class="compass-rose-container">
+            <div class="compass-dial" id="compassDial">
+              <div class="compass-mark c-n">N</div>
+              <div class="compass-mark c-e">E</div>
+              <div class="compass-mark c-s">S</div>
+              <div class="compass-mark c-w">W</div>
+              <div class="compass-needle"></div>
+            </div>
+            <div class="heading-overlay" id="headingOverlay">000°</div>
+          </div>
+          <div class="mag-vectors">
+            <div class="vector-bar-wrap">
+              <span class="v-axis">Mx</span>
+              <div class="bar-track"><div class="bar-fill" id="barMx"></div></div>
+              <span class="v-num" id="valMx">0.0 µT</span>
+            </div>
+            <div class="vector-bar-wrap">
+              <span class="v-axis">My</span>
+              <div class="bar-track"><div class="bar-fill" id="barMy"></div></div>
+              <span class="v-num" id="valMy">0.0 µT</span>
+            </div>
+            <div class="vector-bar-wrap">
+              <span class="v-axis">Mz</span>
+              <div class="bar-track"><div class="bar-fill" id="barMz"></div></div>
+              <span class="v-num" id="valMz">0.0 µT</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. DUAL IMU SENSOR COMPARISON (GY-521 vs GY-87) -->
+      <section class="card widget-imu-compare">
+        <div class="card-header">
+          <div class="title-wrap">
+            <span class="header-icon">⚖️</span>
+            <h2>DUAL IMU CROSS-CHECK</h2>
+          </div>
+          <span class="source-tag">GY-87 (0x68) vs GY-521 (0x69)</span>
+        </div>
+        <div class="card-body imu-compare-body">
+          <div class="imu-subcard">
+            <div class="imu-head">
+              <h3>GY-87 10-DOF (Internal MPU)</h3>
+              <span class="addr-badge">0x68 (Fixed)</span>
+            </div>
+            <div class="imu-metrics">
+              <div class="axis-row"><span>Accel X/Y/Z (g):</span> <strong id="gy87Accel">0.00, 0.00, 1.00</strong></div>
+              <div class="axis-row"><span>Gyro X/Y/Z (°/s):</span> <strong id="gy87Gyro">0.0, 0.0, 0.0</strong></div>
+              <div class="axis-row"><span>Baro Altitude:</span> <strong id="gy87Alt">0.0 m</strong></div>
+            </div>
+          </div>
+          <div class="imu-subcard">
+            <div class="imu-head">
+              <h3>GY-521 (MPU-6050)</h3>
+              <span class="addr-badge">0x69 (AD0=3.3V)</span>
+            </div>
+            <div class="imu-metrics">
+              <div class="axis-row"><span>Accel X/Y/Z (g):</span> <strong id="gy521Accel">0.00, 0.00, 1.00</strong></div>
+              <div class="axis-row"><span>Gyro X/Y/Z (°/s):</span> <strong id="gy521Gyro">0.0, 0.0, 0.0</strong></div>
+              <div class="axis-row"><span>Attitude (R/P):</span> <strong id="gy521Att">0.0°, 0.0°</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. REAL-TIME MULTI-CHANNEL OSCILLOSCOPE -->
+      <section class="card widget-charts">
+        <div class="card-header">
+          <div class="title-wrap">
+            <span class="header-icon">📈</span>
+            <h2>REAL-TIME OSCILLOSCOPE</h2>
+          </div>
+          <div class="chart-controls">
+            <button class="channel-btn active" data-chan="depth">Depth</button>
+            <button class="channel-btn" data-chan="attitude">Attitude</button>
+            <button class="channel-btn" data-chan="accel">Accel</button>
+            <button class="channel-btn" data-chan="mag">Magnetics</button>
+          </div>
+        </div>
+        <div class="card-body chart-body">
+          <canvas id="telemetryChart" width="800" height="200"></canvas>
+        </div>
+      </section>
+
+      <!-- 6. HIGH-SPEED SERIAL TERMINAL & LOG VIEWER -->
+      <section class="card widget-terminal">
+        <div class="card-header">
+          <div class="title-wrap">
+            <span class="header-icon">💻</span>
+            <h2>HIGH-SPEED TELEMETRY & LOG CONSOLE</h2>
+          </div>
+          <div class="terminal-actions">
+            <button id="autoscrollBtn" class="btn-micro active">Autoscroll ON</button>
+            <button id="clearTermBtn" class="btn-micro">Clear</button>
+            <button id="exportLogBtn" class="btn-micro">Export Log</button>
+          </div>
+        </div>
+        <div class="card-body terminal-body">
+          <div class="terminal-output" id="terminalOutput">
+            <div class="term-line info">[0 ms] [INFO] Aquasync Nav-Core Web Dashboard Initialized.</div>
+            <div class="term-line info">[0 ms] [INFO] Ready to connect via Web Serial API or run simulation.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span>Target: STM32F401RCT6 (Cortex-M4 84MHz)</span>
+        <span class="sep">•</span>
+        <span>Bus: I2C1 (400kHz Fast) + TIM2 PWM (32.768kHz) + USART2 DMA</span>
+      </div>
+      <div class="footer-right">
+        <span>AQUASYNC ROV v2.0 • WebSerial Engine</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
