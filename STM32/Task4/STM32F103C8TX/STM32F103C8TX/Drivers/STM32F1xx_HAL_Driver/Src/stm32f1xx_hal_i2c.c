@@ -518,9 +518,19 @@ HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c)
   /* Disable the selected I2C peripheral */
   __HAL_I2C_DISABLE(hi2c);
 
-  /*Reset I2C*/
-  hi2c->Instance->CR1 |= I2C_CR1_SWRST;
-  hi2c->Instance->CR1 &= ~I2C_CR1_SWRST;
+  /* Reset I2C peripheral via RCC to ensure clean reset without Proteus CR1.SWRST lockup */
+  if (hi2c->Instance == I2C1)
+  {
+    __HAL_RCC_I2C1_FORCE_RESET();
+    __HAL_RCC_I2C1_RELEASE_RESET();
+  }
+#if defined(I2C2)
+  else if (hi2c->Instance == I2C2)
+  {
+    __HAL_RCC_I2C2_FORCE_RESET();
+    __HAL_RCC_I2C2_RELEASE_RESET();
+  }
+#endif
 
   /* Get PCLK1 frequency */
   pclk1 = HAL_RCC_GetPCLK1Freq();
@@ -5072,6 +5082,7 @@ void HAL_I2C_ER_IRQHandler(I2C_HandleTypeDef *hi2c)
 
     /* Workaround: Start cannot be generated after a misplaced Stop */
     SET_BIT(hi2c->Instance->CR1, I2C_CR1_SWRST);
+    CLEAR_BIT(hi2c->Instance->CR1, I2C_CR1_SWRST);
   }
 
   /* I2C Arbitration Lost error interrupt occurred ---------------------------*/

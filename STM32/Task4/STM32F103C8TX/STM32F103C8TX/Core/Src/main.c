@@ -30,6 +30,7 @@
 #include "mpu6050.h"
 #include "bmp280.h"
 #include "uart_comm.h"
+#include "lcd.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -135,6 +136,14 @@ int main(void)
   UART_Print("[SYS] Streaming real-time telemetry to Virtual Terminal...\r\n");
   HAL_Delay(500);
 
+  /* 4. Initialize 16x2 Character LCD (PA0..PA2 ctrl, PB0..PB3 4-bit data) */
+  LCD_Init();
+  LCD_SetCursor(0, 0);
+  LCD_Print("Task 4: IMU &BMP");
+  LCD_SetCursor(1, 0);
+  LCD_Print("Live Telemetry  ");
+  HAL_Delay(500);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -154,10 +163,13 @@ int main(void)
     /* 3. Transmit formatted telemetry block to Virtual Terminal via UART */
     UART_SendTelemetry(&g_mpu, &g_bmp);
 
-    /* 4. Toggle Heartbeat LED (PC13) */
+    /* 4. Display live sensor values on 16x2 LCD (just as Task 3) */
+    LCD_DisplaySensors(&g_mpu, &g_bmp);
+
+    /* 5. Toggle Heartbeat LED (PC13) */
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
-    /* 5. Telemetry update rate (~4 Hz = 250 ms period) */
+    /* 6. Telemetry update rate (~4 Hz = 250 ms period) */
     HAL_Delay(250);
   }
   /* USER CODE END 3 */
@@ -207,6 +219,9 @@ void SystemClock_Config(void)
 static void MX_I2C1_Init(void)
 {
   /* USER CODE BEGIN I2C1_Init 0 */
+  __HAL_RCC_I2C1_CLK_ENABLE();
+  __HAL_RCC_I2C1_FORCE_RESET();
+  __HAL_RCC_I2C1_RELEASE_RESET();
   /* USER CODE END I2C1_Init 0 */
 
   hi2c1.Instance = I2C1;

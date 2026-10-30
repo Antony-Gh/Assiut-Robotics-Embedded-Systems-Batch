@@ -20,12 +20,16 @@ This project implements a complete, industrial-grade embedded sensor integration
    - Reads factory calibration trimming coefficients from sensor OTP/ROM.
    - Computes compensated **Temperature** (°C), **Pressure** (hPa and Pa), and **Barometric Altitude** (m) using official Bosch Sensortec integer compensation formulas.
 
-3. **Telemetry & Virtual Terminal Display**
+3. **Telemetry & Dual Display Mediums (Virtual Terminal & 16x2 Character LCD)**
    - Transmits real-time formatted telemetry over **USART1** (`PA9` TX, `PA10` RX) at 9600 Baud (8-N-1).
    - Displays live data on the Proteus **Virtual Terminal**.
+   - **Real-Time 16x2 Character LCD Display (just as Task 3):**
+     - Displays instantaneous Roll and Pitch angles on Row 0 (`R:+12.4  P:-05.1`).
+     - Dynamically alternates Row 1 between (Yaw + Temperature) and (Pressure + Altitude) with zero flicker.
+     - Uses robust 4-bit bus on `PB0..PB3` to completely isolate and protect `PB6` (SCL) and `PB7` (SDA) I2C lines.
 
 4. **Modular Architecture & Documentation**
-   - Modular separation into dedicated, reusable drivers: [`mpu6050.h`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Inc/mpu6050.h)/[`mpu6050.c`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Src/mpu6050.c), [`bmp280.h`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Inc/bmp280.h)/[`bmp280.c`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Src/bmp280.c), and [`uart_comm.h`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Inc/uart_comm.h)/[`uart_comm.c`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Src/uart_comm.c).
+   - Modular separation into dedicated, reusable drivers: [`mpu6050.h`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Inc/mpu6050.h)/[`mpu6050.c`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Src/mpu6050.c), [`bmp280.h`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Inc/bmp280.h)/[`bmp280.c`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Src/bmp280.c), [`lcd.h`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Inc/lcd.h)/[`lcd.c`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Src/lcd.c), and [`uart_comm.h`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Inc/uart_comm.h)/[`uart_comm.c`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F103C8TX/STM32F103C8TX/Core/Src/uart_comm.c).
    - Full **Doxygen** documentation across all header and source files.
 
 ---
@@ -36,13 +40,20 @@ This project implements a complete, industrial-grade embedded sensor integration
 
 | STM32 Pin | LQFP48 Pin # | Peripheral Signal | Mode / Type | Connected Device & Pin | Description & Electrical Notes |
 | :--- | :---: | :--- | :--- | :--- | :--- |
-| **PB6** | 42 | `I2C1_SCL` | Alternate Function Open-Drain | MPU-6050 `SCL` / BMP280 `SCL` | I2C Serial Clock (100 kHz Standard Mode). Requires 4.7 kΩ pull-up resistor to +3.3V. |
-| **PB7** | 43 | `I2C1_SDA` | Alternate Function Open-Drain | MPU-6050 `SDA` / BMP280 `SDA` | I2C Serial Data bidirectional line. Requires 4.7 kΩ pull-up resistor to +3.3V. |
-| **PA9** | 30 | `USART1_TX` | Alternate Function Push-Pull | Virtual Terminal `RXD` | UART Telemetry Output (9600 Baud, 8-N-1, No Parity). Connected to Terminal RX. |
-| **PA10** | 31 | `USART1_RX` | Input Floating / Pull-Up | Virtual Terminal `TXD` | UART Command / Debug Input. Connected to Terminal TX. |
-| **PC13** | 2 | `GPIO_Output` | Output Push-Pull | On-Board Blue Pill LED | System Status / Heartbeat indicator (toggles on every 4 Hz telemetry cycle). |
-| **+3.3V** | Header | `VDD` / Power | +3.3V DC Power Rail | `VCC` of all modules | Powers STM32, MPU-6050 (GY-521), and BMP280 sensor breakout boards. |
-| **GND** | Header | `VSS` / Ground | 0V Ground Rail | `GND` of all modules | Common ground reference across MCU, sensors, and Virtual Terminal. |
+| **PA0** | 10 | `GPIO_Output` | Output Push-Pull | LCD `E` (Enable) | LCD strobe pulse line (Identical to Task 3). |
+| **PA1** | 11 | `GPIO_Output` | Output Push-Pull | LCD `RS` (Reg Select) | `0` = Command, `1` = Data (Identical to Task 3). |
+| **PA2** | 12 | `GPIO_Output` | Output Push-Pull | LCD `RW` (Read/Write) | Pulled `0` for Write mode (Identical to Task 3). |
+| **PB0** | 18 | `GPIO_Output` | Output Push-Pull | LCD `D4` (Data Bit 4) | High nibble data line 4 in 4-bit mode. |
+| **PB1** | 19 | `GPIO_Output` | Output Push-Pull | LCD `D5` (Data Bit 5) | High nibble data line 5 in 4-bit mode. |
+| **PB2** | 20 | `GPIO_Output` | Output Push-Pull | LCD `D6` (Data Bit 6) | High nibble data line 6 in 4-bit mode. |
+| **PB3** | 39 | `GPIO_Output` | Output Push-Pull | LCD `D7` (Data Bit 7) | High nibble data line 7 in 4-bit mode. |
+| **PB6** | 42 | `I2C1_SCL` | Alternate Function Open-Drain | MPU-6050 `SCL` / BMP280 `SCL` | I2C Serial Clock (100 kHz Standard Mode). Requires 4.7 kΩ pull-up. |
+| **PB7** | 43 | `I2C1_SDA` | Alternate Function Open-Drain | MPU-6050 `SDA` / BMP280 `SDA` | I2C Serial Data bidirectional line. Requires 4.7 kΩ pull-up. |
+| **PA9** | 30 | `USART1_TX` | Alternate Function Push-Pull | Virtual Terminal `RXD` | UART Telemetry Output (9600 Baud, 8-N-1, No Parity). |
+| **PA10** | 31 | `USART1_RX` | Input Floating / Pull-Up | Virtual Terminal `TXD` | UART Command / Debug Input. |
+| **PC13** | 2 | `GPIO_Output` | Output Push-Pull | On-Board Blue Pill LED | System Status / Heartbeat indicator (toggles on every 4 Hz loop). |
+| **+3.3V** | Header | `VDD` / Power | +3.3V DC Power Rail | `VCC` of all modules | Powers STM32, MPU-6050, BMP280, and LCD logic. |
+| **GND** | Header | `VSS` / Ground | 0V Ground Rail | `GND` of all modules | Common ground reference across MCU, sensors, LCD, and Terminal. |
 
 ---
 
@@ -56,19 +67,20 @@ This project implements a complete, industrial-grade embedded sensor integration
                        |                   [GND] |---> Common Ground
                        |                  [3.3V] |---> +3.3V VCC
                        |                         |
-                       | PA0                 PB7 |---> I2C1_SDA (MPU-6050 & BMP280)
-                       | PA1                 PB6 |---> I2C1_SCL (MPU-6050 & BMP280)
-                       | PA2                 PB5 |
+                LCD E <| PA0                 PB7 |---> I2C1_SDA (MPU-6050 & BMP280)
+               LCD RS <| PA1                 PB6 |---> I2C1_SCL (MPU-6050 & BMP280)
+               LCD RW <| PA2                 PB5 |
                        | PA3                 PB4 |
-                       | PA4                 PB3 |
-                       | PA5                 PA15|
-                       | PA6                 PA12|
-                       | PA7                 PA11|
-                       | PB0                 PA10|<--- USART1_RX (Virtual Terminal TXD)
-                       | PB1                  PA9|---> USART1_TX (Virtual Terminal RXD)
-                       | PB10                 PA8|
-                       | PB11                PB15|
-                       | PB12                PB14|
+                       | PA4                 PB3 |---> LCD D7
+                       | PA5                PA15 |
+                       | PA6                PA12 |
+                       | PA7                PA11 |
+               LCD D4 <| PB0                PA10 |<--- USART1_RX (Virtual Terminal TXD)
+               LCD D5 <| PB1                 PA9 |---> USART1_TX (Virtual Terminal RXD)
+               LCD D6 <| PB2                 PA8 |
+                       | PB10               PB15 |
+                       | PB11               PB14 |
+                       | PB12               PB13 |
                        +-------------------------+
 ```
 
@@ -107,6 +119,24 @@ This project implements a complete, industrial-grade embedded sensor integration
 | **RXD** (Input) | `PA9` (`USART1_TX`) | Serial Data Input to Terminal | 9600 Baud, 8 Data Bits, 1 Stop Bit, No Parity |
 | **TXD** (Output) | `PA10` (`USART1_RX`) | Optional Command Input | 9600 Baud, 8 Data Bits, 1 Stop Bit, No Parity |
 | **GND** | `GND` | Reference Ground | Common ground |
+
+#### 4. 16x2 Character LCD (LM016L / HD44780)
+
+| LCD Pin # | LCD Signal | STM32 Pin | Function | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **1** | `VSS` | `GND` | Ground Reference | Common ground (0V) |
+| **2** | `VDD` | `+5V` / `+3.3V` | Logic Power | Powers LCD controller |
+| **3** | `VEE` | `GND` / Pot Wiper | Contrast Adjust | Tied to 0V for maximum sharp contrast |
+| **4** | `RS` | `PA1` | Register Select | `0` = Command, `1` = Data (Identical to Task 3) |
+| **5** | `RW` | `PA2` (or `GND`) | Read / Write | `0` = Write mode (Identical to Task 3) |
+| **6** | `E` | `PA0` | Enable Strobe | Latches command/data on falling edge |
+| **7..10** | `D0..D3` | *NC (Unconnected)* | Lower Data Nibble | Unused in 4-bit mode |
+| **11** | `D4` | `PB0` | High Data Bit 4 | Driven by STM32 GPIOB |
+| **12** | `D5` | `PB1` | High Data Bit 5 | Driven by STM32 GPIOB |
+| **13** | `D6` | `PB2` | High Data Bit 6 | Driven by STM32 GPIOB |
+| **14** | `D7` | `PB3` | High Data Bit 7 | Driven by STM32 GPIOB |
+
+> **Critical Hardware Isolation Note:** In Task 3, `PB0..PB7` was an 8-bit bus. In Task 4, `PB6` (`I2C1_SCL`) and `PB7` (`I2C1_SDA`) are strictly reserved for the I2C sensors. Operating the LCD in 4-bit mode on `PB0..PB3` completely isolates the LCD from the I2C bus while reusing the same control pins (`PA0..PA2`) from Task 3!
 
 ---
 
