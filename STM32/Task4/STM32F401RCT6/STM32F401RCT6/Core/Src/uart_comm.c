@@ -6,12 +6,10 @@
  */
 
 #include "uart_comm.h"
-#include "usbd_cdc_if.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 
-extern USBD_HandleTypeDef hUsbDeviceFS;
 static UART_HandleTypeDef *s_huart = NULL;
 
 void UART_Comm_Init(UART_HandleTypeDef *huart)
@@ -23,16 +21,12 @@ void UART_SendTelemetry(float roll, float pitch, float yaw, float temp, float pr
 {
     char buf[160];
     int len = snprintf(buf, sizeof(buf),
-        "[TELEMETRY] Roll: %+6.1f deg | Pitch: %+6.1f deg | Yaw: %+6.1f deg | Temp: %5.1f C | Press: %7.2f hPa | Alt: %6.1f m\r\n",
+        "\r\n[TELEMETRY] Roll: %+6.1f deg | Pitch: %+6.1f deg | Yaw: %+6.1f deg | Temp: %5.1f C | Press: %7.2f hPa | Alt: %6.1f m\r\n",
         roll, pitch, yaw, temp, press_hpa, alt_m);
 
     if (len > 0) {
         if (s_huart != NULL) {
             HAL_UART_Transmit(s_huart, (uint8_t *)buf, (uint16_t)len, 100);
-        }
-        /* Only transmit over USB if device is configured by a host */
-        if (hUsbDeviceFS.pClassData != NULL && hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
-            CDC_Transmit_FS((uint8_t *)buf, (uint16_t)len);
         }
     }
 }
@@ -48,9 +42,6 @@ void UART_Printf(const char *fmt, ...)
     if (len > 0) {
         if (s_huart != NULL) {
             HAL_UART_Transmit(s_huart, (uint8_t *)buf, (uint16_t)len, 100);
-        }
-        if (hUsbDeviceFS.pClassData != NULL && hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
-            CDC_Transmit_FS((uint8_t *)buf, (uint16_t)len);
         }
     }
 }

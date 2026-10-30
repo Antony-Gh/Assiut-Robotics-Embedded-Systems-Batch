@@ -7,7 +7,6 @@
   */
 
 #include "logger.h"
-#include "usbd_cdc_if.h"
 #include <string.h>
 
 static UART_HandleTypeDef *s_huart = NULL;
@@ -63,10 +62,7 @@ void LOGGER_TxCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 static void EnqueueBytes(const uint8_t *data, uint16_t len) {
-    /* 1. Transmit via USB Virtual COM Port (Black Pill Type-C) */
-    CDC_Transmit_FS((uint8_t *)data, len);
-
-    /* 2. Also transmit via UART2 DMA if initialized */
+    /* 1. Also transmit via UART2 DMA if initialized */
     if (s_huart != NULL) {
         for (uint16_t i = 0; i < len; i++) {
             uint16_t next_head = (s_head + 1) % LOGGER_BUFFER_SIZE;
