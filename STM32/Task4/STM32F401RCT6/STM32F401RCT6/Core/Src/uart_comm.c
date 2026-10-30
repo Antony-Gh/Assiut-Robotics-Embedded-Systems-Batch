@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <string.h>
 
+extern USBD_HandleTypeDef hUsbDeviceFS;
 static UART_HandleTypeDef *s_huart = NULL;
 
 void UART_Comm_Init(UART_HandleTypeDef *huart)
@@ -29,8 +30,10 @@ void UART_SendTelemetry(float roll, float pitch, float yaw, float temp, float pr
         if (s_huart != NULL) {
             HAL_UART_Transmit(s_huart, (uint8_t *)buf, (uint16_t)len, 100);
         }
-        /* Also stream over USB Virtual COM port if connected */
-        CDC_Transmit_FS((uint8_t *)buf, (uint16_t)len);
+        /* Only transmit over USB if device is configured by a host */
+        if (hUsbDeviceFS.pClassData != NULL && hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
+            CDC_Transmit_FS((uint8_t *)buf, (uint16_t)len);
+        }
     }
 }
 
@@ -46,6 +49,8 @@ void UART_Printf(const char *fmt, ...)
         if (s_huart != NULL) {
             HAL_UART_Transmit(s_huart, (uint8_t *)buf, (uint16_t)len, 100);
         }
-        CDC_Transmit_FS((uint8_t *)buf, (uint16_t)len);
+        if (hUsbDeviceFS.pClassData != NULL && hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
+            CDC_Transmit_FS((uint8_t *)buf, (uint16_t)len);
+        }
     }
 }
