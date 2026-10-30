@@ -107,8 +107,8 @@ This project implements a complete, industrial-grade embedded sensor integration
 | :--- | :--- | :--- | :--- |
 | **VCC** | `+3.3V` | Power Input | Operating voltage: 1.71V to 3.6V (typically 3.3V). |
 | **GND** | `GND` | Ground Reference | Common ground. |
-| **SCL** | `PB6` (`I2C1_SCL`) | I2C Serial Clock | Connected to the shared I2C bus. |
-| **SDA** | `PB7` (`I2C1_SDA`) | I2C Serial Data | Connected to the shared I2C bus. |
+| **SCL / SCK** | `PB8` (Pin 45) or `PB10` (Pin 21) or `PB6` (Pin 42) | I2C Serial Clock | Connected to shared SCL bus. |
+| **SDA / SDI** | `PB9` (Pin 46) or `PB11` (Pin 22) or `PB7` (Pin 43) | I2C Serial Data | Connected to shared SDA bus. |
 | **CSB** | `+3.3V` (VCC) | Chip Select (I2C/SPI) | Tied HIGH to enable I2C mode (disables SPI interface). |
 | **SDO / ADDR** | `GND` | I2C Address Select | Pulled LOW for 7-bit address `0x76` (Write: `0xEC`, Read: `0xED`). |
 
@@ -136,32 +136,49 @@ This project implements a complete, industrial-grade embedded sensor integration
 | **13** | `D6` | `PB2` | High Data Bit 6 | Driven by STM32 GPIOB |
 | **14** | `D7` | `PB3` | High Data Bit 7 | Driven by STM32 GPIOB |
 
-> **Critical Hardware Isolation Note:** In Task 3, `PB0..PB7` was an 8-bit bus. In Task 4, `PB6` (`I2C1_SCL`) and `PB7` (`I2C1_SDA`) are strictly reserved for the I2C sensors. Operating the LCD in 4-bit mode on `PB0..PB3` completely isolates the LCD from the I2C bus while reusing the same control pins (`PA0..PA2`) from Task 3!
-
 ---
 
-### 2.4 Shared I2C Bus Topology & Addressing
+### 2.4 Proteus Pin Behaviors & Recommended Wiring
 
-Both sensors reside on the same physical two-wire bus without conflicts thanks to unique 7-bit slave addresses:
+#### Why did Proteus show Grey on PB6/PB7 and Blue on PB8/PB9?
+
+1. **STM32F103 AFIO Remap:** In the STM32F103 architecture, `I2C1` has two pin mappings:
+   - **Default:** `PB6` (SCL) and `PB7` (SDA)
+   - **Remapped (`AFIO_MAPR_I2C1_REMAP`):** `PB8` (SCL) and `PB9` (SDA)
+2. **Proteus VSM Engine:** Proteus's STM32 simulation DLL (`cm3_stm32.dll`) routes `I2C1` directly to **`PB8` (pin 45)** and **`PB9` (pin 46)**. When the firmware calls `MPU6050_Init()` to generate a START condition, Proteus drives `PB8` and `PB9` **LOW (blue square)**. Because no sensor was attached to PB8/PB9, the lines stayed low. Meanwhile, `PB6` and `PB7` were unconfigured/floating (**grey square**).
+3. **Pull-Up Resistors in Proteus:** Standard analog resistors (`RES`) do not pull digital lines high in Proteus pure-digital partitions. The digital sensor models (`MPU6050V2.DLL`, `TEPBMP280.DLL`) already simulate open-drain lines internally, so external analog resistors are not needed (or use the Proteus `PULLUP` digital component).
+4. **Why PB10 and PB11 are Red:** Pins 21 and 22 are hardware **`I2C2`**. In Proteus, I2C2 is unmapped and starts at logic HIGH (**red square**), which is why Mazen's reference solution used `I2C2` on `PB10`/`PB11`.
+
+#### Recommended Wiring in Proteus
+
+The firmware now features **Intelligent Multi-Bus Auto-Detection** supporting all three configurations:
 
 ```text
-                  +3.3V
++-------------------+--------------------+--------------------+-------------------------------------------+
+| Option            | SCL Connection     | SDA Connection     | Proteus Status / Compatibility            |
++-------------------+--------------------+--------------------+-------------------------------------------+
+| 1. (Recommended)  | Pin 45 (PB8)       | Pin 46 (PB9)       | Matches active Proteus I2C1 remapped bus  |
+| 2. (Mazen Ref)    | Pin 21 (PB10)      | Pin 22 (PB11)      | Hardware I2C2 bus, idle HIGH (red)        |
+| 3. (Legacy)       | Pin 42 (PB6)       | Pin 43 (PB7)       | Default I2C1 bus                          |
++-------------------+--------------------+--------------------+-------------------------------------------+
+```
+
+```text
+                  +3.3V (or internal)
                     |
-                 [4.7k] [4.7k]  (Pull-up Resistors)
-                    |      |
- STM32F103C8T6      |      |
-+-------------+     |      |
-|             |     |      |
-|    PB6 (SCL)|-----+------+----------------------> [SCL] MPU-6050 (Addr: 0x68)
-|             |            |                 |
-|             |            |                 +----> [SCL] BMP280   (Addr: 0x76)
-|             |            |
-|    PB7 (SDA)|------------+----------------------> [SDA] MPU-6050 (Addr: 0x68)
-|             |                              |
-|             |                              +----> [SDA] BMP280   (Addr: 0x76)
+  STM32F103C8T6     |
++-------------+     |
+|             |     |
+|    PB8 (SCL)|-----+-------------------------> [SCL] MPU-6050 (Addr: 0x68)
+|    (Pin 45) |     |                     |
+|             |     |                     +---> [SCK] BMP280   (Addr: 0x76)
+|             |     |
+|    PB9 (SDA)|-----+-------------------------> [SDA] MPU-6050 (Addr: 0x68)
+|    (Pin 46) |                           |
+|             |                           +---> [SDI] BMP280   (Addr: 0x76)
 |             |
-|    PA9 (TX) |-----------------------------------> [RXD] Virtual Terminal (9600 Baud)
-|   PA10 (RX) |<----------------------------------- [TXD] Virtual Terminal
+|    PA9 (TX) |-------------------------------> [RXD] Virtual Terminal (9600 Baud)
+|   PA10 (RX) |<------------------------------- [TXD] Virtual Terminal
 +-------------+
 ```
 
