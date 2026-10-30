@@ -23,14 +23,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "sensor_config.h"
 #include "mpu6050.h"
-#include "hmc5883l.h"
-#include "bmp180.h"
-#include "gy87.h"
-#include "ms5540c.h"
-#include "logger.h"
-#include "usb_device.h"
+#include "bmp280.h"
+#include "lcd.h"
+#include "uart_comm.h"
+#include "usbd_cdc_if.h"
+#include <stdio.h>
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,7 +39,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define DEVICE_FS 0
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -60,13 +59,8 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-/* Sensor Handles */
-MPU6050_t gy521_sensor;
-GY87_t    gy87_sensor;
-MS5540C_t ms5540_sensor;
-
-/* Telemetry loop rate */
-#define TELEMETRY_INTERVAL_MS 50 /* 20 Hz telemetry streaming rate */
+MPU6050_t g_mpu;
+BMP_t     g_bmp;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -78,219 +72,12 @@ static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
-static void MX_I2C1_InitPins(GPIO_TypeDef *port, uint16_t scl_pin, uint16_t sda_pin);
-static void AutoDetectAndInitSensors(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    LOGGER_TxCpltCallback(huart);
-}
 
-static GPIO_TypeDef *s_active_i2c_port = GPIOB;
-static uint16_t      s_active_scl_pin  = GPIO_PIN_8;
-static uint16_t      s_active_sda_pin  = GPIO_PIN_9;
-static bool          s_i2c_pins_locked = false;
-
-/* Microsecond delay helper for bit-banging */
-static void I2C_DelayUs(uint32_t us)
-{
-    volatile uint32_t count = us * 14; /* ~84MHz Cortex-M4 cycle calibration */
-    while (count--) {
-        __NOP();
-    }
-}
-
-/* Fast bit-bang I2C address probe (works on any pin pair, immune to hardware I2C state lockups) */
-static bool I2C_ProbePinPair(GPIO_TypeDef *port, uint16_t scl_pin, uint16_t sda_pin, uint8_t addr_7bit)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-
-    /* 1. Configure pins as Open-Drain Outputs with internal Pull-Up */
-    GPIO_InitStruct.Pin = scl_pin | sda_pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(port, &GPIO_InitStruct);
-
-    /* Release lines HIGH */
-    HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(port, sda_pin, GPIO_PIN_SET);
-    I2C_DelayUs(10);
-
-    /* Pulse SCL up to 9 times to unstick any slave holding SDA */
-    for (int k = 0; k < 9; k++) {
-        HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_RESET);
-        I2C_DelayUs(5);
-        HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_SET);
-        I2C_DelayUs(5);
-        if (HAL_GPIO_ReadPin(port, sda_pin) == GPIO_PIN_SET) break;
-    }
-
-    /* Bit-bang START condition: SDA goes low while SCL is high */
-    HAL_GPIO_WritePin(port, sda_pin, GPIO_PIN_RESET);
-    I2C_DelayUs(5);
-    HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_RESET);
-    I2C_DelayUs(5);
-
-    /* Send 8 bits of (addr_7bit << 1) [Write command] */
-    uint8_t byte = (addr_7bit << 1);
-    for (int b = 7; b >= 0; b--) {
-        if ((byte >> b) & 1) {
-            HAL_GPIO_WritePin(port, sda_pin, GPIO_PIN_SET);
-        } else {
-            HAL_GPIO_WritePin(port, sda_pin, GPIO_PIN_RESET);
-        }
-        I2C_DelayUs(3);
-        HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_SET);
-        I2C_DelayUs(5);
-        HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_RESET);
-        I2C_DelayUs(3);
-    }
-
-    /* Release SDA to read ACK */
-    HAL_GPIO_WritePin(port, sda_pin, GPIO_PIN_SET);
-    I2C_DelayUs(3);
-    HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_SET);
-    I2C_DelayUs(5);
-
-    /* Read ACK bit (0 = ACK from chip, 1 = NACK / no chip) */
-    bool ack = (HAL_GPIO_ReadPin(port, sda_pin) == GPIO_PIN_RESET);
-
-    HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_RESET);
-    I2C_DelayUs(3);
-
-    /* Bit-bang STOP condition: SDA goes low, SCL goes high, SDA goes high */
-    HAL_GPIO_WritePin(port, sda_pin, GPIO_PIN_RESET);
-    I2C_DelayUs(3);
-    HAL_GPIO_WritePin(port, scl_pin, GPIO_PIN_SET);
-    I2C_DelayUs(5);
-    HAL_GPIO_WritePin(port, sda_pin, GPIO_PIN_SET);
-    I2C_DelayUs(10);
-
-    return ack;
-}
-
-static void MX_I2C1_InitPins(GPIO_TypeDef *port, uint16_t scl_pin, uint16_t sda_pin)
-{
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-
-    /* Force reset I2C1 peripheral registers */
-    __HAL_RCC_I2C1_FORCE_RESET();
-    HAL_Delay(2);
-    __HAL_RCC_I2C1_RELEASE_RESET();
-
-    /* Configure selected pins with AF4_I2C1 */
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = scl_pin | sda_pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
-    HAL_GPIO_Init(port, &GPIO_InitStruct);
-
-    /* Initialize hardware I2C1 at 100 kHz */
-    __HAL_RCC_I2C1_CLK_ENABLE();
-    hi2c1.Instance = I2C1;
-    hi2c1.Init.ClockSpeed = 100000;
-    hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-    hi2c1.Init.OwnAddress1 = 0;
-    hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-    hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-    hi2c1.Init.OwnAddress2 = 0;
-    hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-    HAL_I2C_Init(&hi2c1);
-}
-
-static void AutoDetectAndInitSensors(void)
-{
-#if (ENABLE_GY521 || ENABLE_GY87)
-    uint8_t detected_addr = 0;
-    const char *detected_pins = NULL;
-
-    if (!s_i2c_pins_locked) {
-#if (I2C1_PIN_SELECTION == 0 || I2C1_PIN_SELECTION == 2)
-        /* Test PB8 (SCL) and PB9 (SDA) */
-        if (I2C_ProbePinPair(GPIOB, GPIO_PIN_8, GPIO_PIN_9, 0x68)) {
-            detected_addr = 0x68;
-            s_active_scl_pin = GPIO_PIN_8;
-            s_active_sda_pin = GPIO_PIN_9;
-            detected_pins = "PB8 (SCL) & PB9 (SDA)";
-            s_i2c_pins_locked = true;
-        } else if (I2C_ProbePinPair(GPIOB, GPIO_PIN_8, GPIO_PIN_9, 0x69)) {
-            detected_addr = 0x69;
-            s_active_scl_pin = GPIO_PIN_8;
-            s_active_sda_pin = GPIO_PIN_9;
-            detected_pins = "PB8 (SCL) & PB9 (SDA)";
-            s_i2c_pins_locked = true;
-        }
-#endif
-
-#if (I2C1_PIN_SELECTION == 1 || I2C1_PIN_SELECTION == 2)
-        /* If not found, test PB6 (SCL) and PB7 (SDA) */
-        if (!s_i2c_pins_locked) {
-            if (I2C_ProbePinPair(GPIOB, GPIO_PIN_6, GPIO_PIN_7, 0x68)) {
-                detected_addr = 0x68;
-                s_active_scl_pin = GPIO_PIN_6;
-                s_active_sda_pin = GPIO_PIN_7;
-                detected_pins = "PB6 (SCL) & PB7 (SDA)";
-                s_i2c_pins_locked = true;
-            } else if (I2C_ProbePinPair(GPIOB, GPIO_PIN_6, GPIO_PIN_7, 0x69)) {
-                detected_addr = 0x69;
-                s_active_scl_pin = GPIO_PIN_6;
-                s_active_sda_pin = GPIO_PIN_7;
-                detected_pins = "PB6 (SCL) & PB7 (SDA)";
-                s_i2c_pins_locked = true;
-            }
-        }
-#endif
-
-        if (s_i2c_pins_locked) {
-            LOG_INFO("==================================================");
-            LOG_INFO(">>> SUCCESS: Sensor ACKed on %s! <<<", detected_pins);
-            LOG_INFO(">>> Device I2C Address: 0x%02X <<<", detected_addr);
-            LOG_INFO("==================================================");
-            MX_I2C1_InitPins(s_active_i2c_port, s_active_scl_pin, s_active_sda_pin);
-        } else {
-            LOG_WARN("[I2C SCAN] No device ACK on PB8/PB9 OR PB6/PB7! Check: 1) VCC to 3.3V/5V, 2) GND, 3) SCL to PB8/PB6, 4) SDA to PB9/PB7.");
-            return;
-        }
-    }
-
-#if ENABLE_GY521
-    if (!gy521_sensor.is_initialized && s_i2c_pins_locked) {
-        uint8_t addr_to_use = detected_addr ? detected_addr : 0x68;
-        LOG_INFO("Initializing GY-521 (MPU-6050 @ 0x%02X)...", addr_to_use);
-        if (MPU6050_Init(&gy521_sensor, &hi2c1, (addr_to_use << 1),
-                         MPU6050_ACCEL_FS_4G, MPU6050_GYRO_FS_500DPS, MPU6050_DLPF_44HZ) == HAL_OK) {
-            LOG_INFO(">>> GY-521 (MPU-6050) ONLINE & CALIBRATED! <<<");
-        } else {
-            LOG_WARN("MPU6050_Init returned error at 0x%02X.", addr_to_use);
-        }
-    }
-#endif
-
-#if ENABLE_GY87
-    if (!gy87_sensor.is_initialized && s_i2c_pins_locked) {
-        LOG_INFO("Initializing GY-87 10-DOF (MPU @ 0x68 + Mag + Baro)...");
-        if (GY87_Init(&gy87_sensor, &hi2c1, (0x68 << 1), LOCAL_MAGNETIC_DECLINATION_DEG) == HAL_OK) {
-            LOG_INFO(">>> GY-87 10-DOF ONLINE! <<<");
-        }
-    }
-#endif
-#endif /* ENABLE_GY521 || ENABLE_GY87 */
-
-#if ENABLE_MS5540C
-    if (!ms5540_sensor.is_initialized) {
-        if (MS5540C_Init(&ms5540_sensor, ROV_WATER_DENSITY) == HAL_OK) {
-            LOG_INFO(">>> MS5540C Depth Sensor ONLINE! Baseline: %.1f mbar <<<", ms5540_sensor.surface_pressure_mbar);
-        }
-    }
-#endif
-}
 /* USER CODE END 0 */
 
 /**
@@ -333,145 +120,107 @@ int main(void)
   MX_PDM2PCM_Init();
   /* USER CODE BEGIN 2 */
 
-  /* 1. Initialize DMA Logger */
-  LOGGER_Init(&huart2);
-  HAL_Delay(100);
-  LOG_INFO("========================================");
-  LOG_INFO("   AQUASYNC ROV Multi-Sensor Telemetry  ");
-  LOG_INFO("   STM32F401RCT6 Navigation Core       ");
-  LOG_INFO("   Single-Sensor Verification Mode      ");
-  LOG_INFO("========================================");
+  /* 1. Configure USART1 at 9600 Baud for Proteus Virtual Terminal */
+  huart1.Init.BaudRate = 9600;
+  HAL_UART_Init(&huart1);
+  UART_Comm_Init(&huart1);
 
-#if ENABLE_MS5540C
-  /* Start 32.768 kHz continuous MCLK on PA0 for MS5540C */
-  LOG_INFO("Starting 32.768 kHz MCLK on PA0 for MS5540C...");
-  MS5540C_StartMCLK(&htim2, TIM_CHANNEL_1);
-#endif
+  /* 2. Start TIM2 PWM Generation on PA0 (Channel 1, ARR=3, Pulse=2) */
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
-  /* 2. Run Initial Sensor Auto-Detection */
-  AutoDetectAndInitSensors();
+  /* 3. Initialize 16x2 Character LCD in 8-bit mode */
+  LCD_Init();
+  LCD_SetCursor(0, 0);
+  LCD_SendString("Assiut Robotics");
+  LCD_SetCursor(1, 0);
+  LCD_SendString("Task 4 - F401RC ");
+  HAL_Delay(800);
+  LCD_Clear();
 
-  LOG_INFO("Telemetry streaming at 20 Hz (interval = %d ms)...", TELEMETRY_INTERVAL_MS);
+  /* 4. Transmit Startup Banner over UART & USB CDC */
+  UART_Printf("\r\n========================================\r\n");
+  UART_Printf(" Assiut Robotics - Embedded Systems Batch\r\n");
+  UART_Printf(" Task 4: I2C Telemetry & 8-Bit LCD\r\n");
+  UART_Printf(" MCU: STM32F401RCT6 (Blackpill Cortex-M4)\r\n");
+  UART_Printf(" I2C1: SCL=PB8, SDA=PB9 | UART1: TX=PB6, RX=PB7\r\n");
+  UART_Printf(" LCD 8-Bit: PC0..PC7 (Data), PA4(EN), PA5(RS), PA6(RW)\r\n");
+  UART_Printf(" TIM2 PWM: PA0 (CH1) | Heartbeat LED: PC13\r\n");
+  UART_Printf("========================================\r\n");
+
+  /* 5. Initialize MPU-6050 Motion Sensor (I2C address 0x68) */
+  if (MPU6050_Init(&g_mpu, &hi2c1, (0x68 << 1), MPU6050_ACCEL_FS_4G, MPU6050_GYRO_FS_500DPS, MPU6050_DLPF_44HZ) == HAL_OK) {
+      UART_Printf("[INIT] MPU-6050 Motion Sensor ONLINE at 0x68!\r\n");
+  } else {
+      UART_Printf("[INIT] MPU-6050 polling on I2C1...\r\n");
+  }
+
+  /* 6. Initialize BMP280 / BMP180 Pressure & Temperature Sensor (0x76 / 0x77) */
+  if (BMP_Init(&g_bmp, &hi2c1) == HAL_OK) {
+      UART_Printf("[INIT] BMP Sensor ONLINE (Type: %d, ID: 0x%02X)!\r\n", g_bmp.sensor_type, g_bmp.chip_id);
+  } else {
+      UART_Printf("[INIT] BMP Sensor polling on I2C1...\r\n");
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t last_telemetry_tick = HAL_GetTick();
   uint32_t last_attitude_tick  = HAL_GetTick();
-#if ENABLE_GY87
-  uint32_t last_mag_tick       = HAL_GetTick();
-#endif
-#if ENABLE_MS5540C
-  uint32_t last_depth_tick     = HAL_GetTick();
-#endif
-  uint32_t last_scan_tick      = HAL_GetTick();
-  uint32_t last_diag_tick      = HAL_GetTick();
+  uint32_t last_telemetry_tick = HAL_GetTick();
+  uint32_t last_page_tick      = HAL_GetTick();
+  uint8_t  lcd_page            = 0;
 
   while (1)
   {
     uint32_t current_tick = HAL_GetTick();
 
-    /* 1. Fast attitude update for GY-521 and GY-87 MPU (50 Hz, every 20ms) */
+    /* 1. High-frequency attitude fusion (50 Hz / every 20ms) */
     if ((current_tick - last_attitude_tick) >= 20) {
         float dt = (float)(current_tick - last_attitude_tick) / 1000.0f;
         last_attitude_tick = current_tick;
-#if ENABLE_GY521
-        if (gy521_sensor.is_initialized) {
-            MPU6050_UpdateAttitude(&gy521_sensor, dt);
-        }
-#endif
-#if ENABLE_GY87
-        if (gy87_sensor.is_initialized) {
-            if (MPU6050_UpdateAttitude(&gy87_sensor.mpu, dt) == HAL_OK) {
-                gy87_sensor.data.ax_g       = gy87_sensor.mpu.data.ax_g;
-                gy87_sensor.data.ay_g       = gy87_sensor.mpu.data.ay_g;
-                gy87_sensor.data.az_g       = gy87_sensor.mpu.data.az_g;
-                gy87_sensor.data.gx_dps     = gy87_sensor.mpu.data.gx_dps;
-                gy87_sensor.data.gy_dps     = gy87_sensor.mpu.data.gy_dps;
-                gy87_sensor.data.gz_dps     = gy87_sensor.mpu.data.gz_dps;
-                gy87_sensor.data.mpu_temp_c = gy87_sensor.mpu.data.temp_c;
-                gy87_sensor.data.roll_deg   = gy87_sensor.mpu.data.roll_deg;
-                gy87_sensor.data.pitch_deg  = gy87_sensor.mpu.data.pitch_deg;
-            }
-        }
-#endif
-    }
-
-#if ENABLE_GY87
-    /* 2. Low-frequency GY-87 Magnetometer and Barometer update (10 Hz, every 100ms) */
-    if ((current_tick - last_mag_tick) >= 100) {
-        last_mag_tick = current_tick;
-        if (gy87_sensor.is_initialized) {
-            if (HMC5883L_Read(&gy87_sensor.mag) == HAL_OK) {
-                gy87_sensor.data.mx_uT       = gy87_sensor.mag.data.mx_uT;
-                gy87_sensor.data.my_uT       = gy87_sensor.mag.data.my_uT;
-                gy87_sensor.data.mz_uT       = gy87_sensor.mag.data.mz_uT;
-                gy87_sensor.data.heading_deg = gy87_sensor.mag.data.heading_deg;
-            }
-            if (BMP180_Read(&gy87_sensor.baro) == HAL_OK) {
-                gy87_sensor.data.pressure_hpa = gy87_sensor.baro.data.pressure_hpa;
-                gy87_sensor.data.baro_temp_c  = gy87_sensor.baro.data.temperature_c;
-                gy87_sensor.data.altitude_m   = gy87_sensor.baro.data.altitude_m;
-            }
+        if (g_mpu.is_initialized) {
+            MPU6050_UpdateAttitude(&g_mpu, dt);
+        } else {
+            MPU6050_Init(&g_mpu, &hi2c1, (0x68 << 1), MPU6050_ACCEL_FS_4G, MPU6050_GYRO_FS_500DPS, MPU6050_DLPF_44HZ);
         }
     }
-#endif
 
-#if ENABLE_MS5540C
-    /* 3. MS5540C Depth / Pressure update (4 Hz, every 250ms) */
-    if ((current_tick - last_depth_tick) >= 250) {
-        last_depth_tick = current_tick;
-        if (ms5540_sensor.is_initialized) {
-            MS5540C_Read(&ms5540_sensor);
-        }
+    /* 2. Switch LCD Row 1 Display Page every 2.5 seconds */
+    if ((current_tick - last_page_tick) >= 2500) {
+        last_page_tick = current_tick;
+        lcd_page = !lcd_page;
     }
-#endif
 
-    /* 4. Periodic Telemetry Stream (20 Hz, every 50ms) */
-    if ((current_tick - last_telemetry_tick) >= TELEMETRY_INTERVAL_MS) {
+    /* 3. Telemetry Stream & Display Refresh (5 Hz / every 200ms) */
+    if ((current_tick - last_telemetry_tick) >= 200) {
         last_telemetry_tick = current_tick;
-#if TELEMETRY_USE_JSON
-        LOGGER_SendTelemetryJSON(&gy521_sensor.data, &gy87_sensor.data, &ms5540_sensor.data);
-#else
-        LOGGER_SendTelemetryCSV(&gy521_sensor.data, &gy87_sensor.data, &ms5540_sensor.data);
-#endif
-    }
 
-#if SENSOR_LIVE_DIAGNOSTICS
-    /* Live Text Diagnostics in Console (every 1 second) */
-    if ((current_tick - last_diag_tick) >= 1000) {
-        last_diag_tick = current_tick;
-#if ENABLE_GY521
-        if (gy521_sensor.is_initialized) {
-            char s_p[16], s_r[16], s_ax[16], s_ay[16], s_az[16];
-            ftoa_custom(s_p, gy521_sensor.data.pitch_deg, 1);
-            ftoa_custom(s_r, gy521_sensor.data.roll_deg, 1);
-            ftoa_custom(s_ax, gy521_sensor.data.ax_g, 2);
-            ftoa_custom(s_ay, gy521_sensor.data.ay_g, 2);
-            ftoa_custom(s_az, gy521_sensor.data.az_g, 2);
-            LOG_INFO("[GY-521 LIVE] Pitch: %s deg | Roll: %s deg | Accel: X=%s Y=%s Z=%s g",
-                     s_p, s_r, s_ax, s_ay, s_az);
+        /* Read Barometer */
+        if (g_bmp.is_initialized) {
+            BMP_Read(&g_bmp);
+        } else {
+            BMP_Init(&g_bmp, &hi2c1);
         }
-#endif
-    }
-#endif
 
-    /* 5. Auto-retry probe every 2.5 seconds if active sensor not initialized */
-    if ((current_tick - last_scan_tick) >= 2500) {
-        last_scan_tick = current_tick;
-        bool need_probe = false;
-#if ENABLE_GY521
-        if (!gy521_sensor.is_initialized) need_probe = true;
-#endif
-#if ENABLE_GY87
-        if (!gy87_sensor.is_initialized) need_probe = true;
-#endif
-#if ENABLE_MS5540C
-        if (!ms5540_sensor.is_initialized) need_probe = true;
-#endif
-        if (need_probe) {
-            AutoDetectAndInitSensors();
-        }
+        /* Transmit Real-Time Telemetry over USART1 (Virtual Terminal) & USB CDC */
+        UART_SendTelemetry(g_mpu.data.roll_deg,
+                           g_mpu.data.pitch_deg,
+                           g_mpu.data.yaw_deg,
+                           g_bmp.temperature,
+                           g_bmp.pressure_hpa,
+                           g_bmp.altitude);
+
+        /* Update 16x2 Character LCD in 8-bit mode */
+        LCD_DisplaySensors(g_mpu.data.roll_deg,
+                           g_mpu.data.pitch_deg,
+                           g_mpu.data.yaw_deg,
+                           g_bmp.temperature,
+                           g_bmp.pressure_hpa,
+                           g_bmp.altitude,
+                           lcd_page);
+
+        /* Toggle Heartbeat Status LED on PC13 */
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
 
     /* USER CODE END WHILE */

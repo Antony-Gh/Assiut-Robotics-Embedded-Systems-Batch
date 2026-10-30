@@ -215,29 +215,5 @@ void OTG_FS_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-/**
-  * @brief This function handles DMA1 stream6 global interrupt.
-  */
-void DMA1_Stream6_IRQHandler(void)
-{
-  HAL_DMA_IRQHandler(&hdma_usart2_tx);
-}
 
-/**
-  * @brief This function handles USART2 global interrupt.
-  */
-void USART2_IRQHandler(void)
-{
-  HAL_UART_IRQHandler(&huart2);
-}
-
-extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
-
-/**
-  * @brief This function handles USB On The Go FS global interrupt.
-  */
-void OTG_FS_IRQHandler(void)
-{
-  HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
-}
 /* USER CODE END 1 */

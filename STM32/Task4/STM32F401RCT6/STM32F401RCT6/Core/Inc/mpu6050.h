@@ -79,6 +79,7 @@ typedef struct {
     /* Calculated Attitude (Complementary / Trig) */
     float roll_deg;
     float pitch_deg;
+    float yaw_deg;
 } MPU6050_Data_t;
 
 /* MPU-6050 Device Handle */

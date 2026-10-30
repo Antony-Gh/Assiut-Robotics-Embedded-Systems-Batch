@@ -212,5 +212,10 @@ HAL_StatusTypeDef MPU6050_UpdateAttitude(MPU6050_t *dev, float dt_seconds) {
     dev->data.roll_deg  = alpha * (dev->data.roll_deg  + dev->data.gx_dps * dt_seconds) + (1.0f - alpha) * accel_roll;
     dev->data.pitch_deg = alpha * (dev->data.pitch_deg + dev->data.gy_dps * dt_seconds) + (1.0f - alpha) * accel_pitch;
 
+    /* Gyro Yaw integration */
+    dev->data.yaw_deg += dev->data.gz_dps * dt_seconds;
+    if (dev->data.yaw_deg > 180.0f) dev->data.yaw_deg -= 360.0f;
+    else if (dev->data.yaw_deg < -180.0f) dev->data.yaw_deg += 360.0f;
+
     return HAL_OK;
 }

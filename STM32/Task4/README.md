@@ -324,3 +324,51 @@ Finished building: default.size.stdout
 ```
 
 Build result: **0 errors, 0 warnings**.
+
+---
+
+## 7. STM32F401RCT6 (Blackpill) Solution
+
+Due to Proteus simulator limitations with the STM32F103 I2C model under certain DLL environments, Task 4 is fully implemented and verified on the high-performance **STM32F401RCT6 (ARM Cortex-M4 @ 84MHz)** located in [`STM32/Task4/STM32F401RCT6/STM32F401RCT6`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F401RCT6/STM32F401RCT6).
+
+### 7.1 CubeMX Pin Configuration & Hardware Map
+
+| Peripheral / Interface | Pin | Signal Name | Mode / Description |
+| :--- | :--- | :--- | :--- |
+| **I2C1** | **PB8** | `I2C1_SCL` | I2C Serial Clock for MPU-6050 & BMP280/BMP180 |
+| **I2C1** | **PB9** | `I2C1_SDA` | I2C Serial Data bidirectional line |
+| **USART1** | **PB6** | `USART1_TX` | Transmit to Virtual Terminal / Telemetry Console (9600 Baud) |
+| **USART1** | **PB7** | `USART1_RX` | Receive command / Telemetry RX |
+| **USB_OTG_FS** | **PA11** | `USB_OTG_FS_DM` | USB D- Differential Signal (Virtual COM Port) |
+| **USB_OTG_FS** | **PA12** | `USB_OTG_FS_DP` | USB D+ Differential Signal (Virtual COM Port) |
+| **USB_OTG_FS** | **PA9** | `USB_OTG_FS_VBUS` | USB VBUS 5V Sense Input |
+| **USB_OTG_FS** | **PA8** | `USB_OTG_FS_SOF` | Start of Frame Clock Output |
+| **TIM2 (PWM)** | **PA0** | `TIM2_CH1` | PWM Output (Internal Clock, ARR = 3, Pulse = 2) |
+| **Built-in LED** | **PC13** | `GPIO_Output` | Onboard Heartbeat / Status LED (5 Hz toggle) |
+| **LCD Control** | **PA4** | `GPIO_Output` | LCD Enable (`LCD_EN`) pulse strobe |
+| **LCD Control** | **PA5** | `GPIO_Output` | LCD Register Select (`LCD_RS`: 0 = Command, 1 = Data) |
+| **LCD Control** | **PA6** | `GPIO_Output` | LCD Read/Write (`LCD_RW`: 0 = Write) |
+| **LCD Data Bus** | **PC0** | `GPIO_Output` | `LCD_D0` |
+| **LCD Data Bus** | **PC1** | `GPIO_Output` | `LCD_D1` |
+| **LCD Data Bus** | **PC2** | `GPIO_Output` | `LCD_D2` |
+| **LCD Data Bus** | **PC3** | `GPIO_Output` | `LCD_D3` |
+| **LCD Data Bus** | **PC4** | `GPIO_Output` | `LCD_D4` |
+| **LCD Data Bus** | **PC5** | `GPIO_Output` | `LCD_D5` |
+| **LCD Data Bus** | **PC6** | `GPIO_Output` | `LCD_D6` |
+| **LCD Data Bus** | **PC7** | `GPIO_Output` | `LCD_D7` |
+| **RCC Oscillators** | **PC14 / PC15** | `OSC32_IN / OUT` | Low-Speed External 32.768 kHz RTC Crystal |
+| **RCC Oscillators** | **PH0 / PH1** | `OSC_IN / OUT` | High-Speed External 25.000 MHz Crystal |
+
+### 7.2 Integrated Middlewares
+
+- **USB_DEVICE**: Communication Device Class (CDC Virtual COM Port) running alongside USART1.
+- **LIBJPEG**: Image compression middleware for camera feeds.
+- **MBEDTLS**: Cryptographic layer for secure telemetry packets.
+- **PDM2PCM**: Digital microphone audio processing filter.
+
+### 7.3 Build Verification
+
+- Target ELF: [`STM32F401RCT6.elf`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F401RCT6/STM32F401RCT6/Debug/STM32F401RCT6.elf)
+- Simulation HEX: [`STM32F401RCT6.hex`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F401RCT6/STM32F401RCT6/Debug/STM32F401RCT6.hex)
+- Compilation: **0 errors, 0 warnings**.
+
