@@ -329,7 +329,7 @@ Build result: **0 errors, 0 warnings**.
 
 ## 7. STM32F401RCT6 (Blackpill) Solution
 
-Due to Proteus simulator limitations with the STM32F103 I2C model under certain DLL environments, Task 4 is fully implemented and verified on the high-performance **STM32F401RCT6 (ARM Cortex-M4 @ 84MHz)** located in [`STM32/Task4/STM32F401RCT6/STM32F401RCT6`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F401RCT6/STM32F401RCT6).
+Due to Proteus simulator limitations with the STM32F103 I2C model under certain DLL environments, Task 4 is fully implemented and verified on the high-performance **STM32F401RCT6 (ARM Cortex-M4 @ 72MHz)** located in [`STM32/Task4/STM32F401RCT6/STM32F401RCT6`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F401RCT6/STM32F401RCT6).
 
 ### 7.1 CubeMX Pin Configuration & Hardware Map
 
@@ -357,18 +357,30 @@ Due to Proteus simulator limitations with the STM32F103 I2C model under certain 
 | **LCD Data Bus** | **PC6** | `GPIO_Output` | `LCD_D6` |
 | **LCD Data Bus** | **PC7** | `GPIO_Output` | `LCD_D7` |
 | **RCC Oscillators** | **PC14 / PC15** | `OSC32_IN / OUT` | Low-Speed External 32.768 kHz RTC Crystal |
-| **RCC Oscillators** | **PH0 / PH1** | `OSC_IN / OUT` | High-Speed External 25.000 MHz Crystal |
+| **RCC Oscillators** | **PH0 / PH1** | `OSC_IN / OUT` | High-Speed External 16.000 MHz Crystal |
 
-### 7.2 Integrated Middlewares
+### 7.2 Clock Tree Configuration
+
+- **HSE Input Frequency:** 16 MHz
+- **PLL Configuration:** PLLM = 8, PLLN = 72, PLLP = 2, PLLQ = 3
+  - $\text{VCO Input} = 16\text{ MHz} / 8 = 2\text{ MHz}$
+  - $\text{VCO Output} = 2\text{ MHz} \times 72 = 144\text{ MHz}$
+- **Core Clocks:**
+  - **SYSCLK:** 72 MHz ($\text{VCO} / 2$)
+  - **HCLK (AHB):** 72 MHz ($\text{SYSCLK} / 1$)
+  - **APB1 (PCLK1):** 36 MHz ($\text{HCLK} / 2$, Timer Clock = 72 MHz)
+  - **APB2 (PCLK2):** 72 MHz ($\text{HCLK} / 1$, Timer Clock = 72 MHz)
+- **USB OTG FS Clock:** 48 MHz ($\text{VCO} / 3$, exact required 48 MHz)
+
+### 7.3 Integrated Middlewares
 
 - **USB_DEVICE**: Communication Device Class (CDC Virtual COM Port) running alongside USART1.
 - **LIBJPEG**: Image compression middleware for camera feeds.
 - **MBEDTLS**: Cryptographic layer for secure telemetry packets.
 - **PDM2PCM**: Digital microphone audio processing filter.
 
-### 7.3 Build Verification
+### 7.4 Build Verification
 
 - Target ELF: [`STM32F401RCT6.elf`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F401RCT6/STM32F401RCT6/Debug/STM32F401RCT6.elf)
 - Simulation HEX: [`STM32F401RCT6.hex`](file:///e:/Robotics_Team/New_Embedded_batch/Assiut-Robotics-Embedded-Systems-Batch/STM32/Task4/STM32F401RCT6/STM32F401RCT6/Debug/STM32F401RCT6.hex)
 - Compilation: **0 errors, 0 warnings**.
-
